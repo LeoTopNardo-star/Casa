@@ -1,5 +1,6 @@
-const CACHE_NAME = 'casa-pwa-v7';
+const CACHE_NAME = 'casa-pwa-v8';
 const APP_FILES = [
+  './index.html',
   './Spesa.html',
   './manifest.webmanifest',
   './casa.svg'
@@ -35,28 +36,38 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
+      (async () => {
+        const cachedPage = await caches.match(request);
+        if (cachedPage) {
+          return cachedPage;
+        }
+
+        try {
+          const response = await fetch(request);
           if (response.ok) {
-            const responseCopy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseCopy));
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put(request, response.clone());
           }
           return response;
-        })
-        .catch(async () => {
-          const cachedPage = await caches.match(request);
-          return cachedPage || caches.match('./Spesa.html');
-        })
+        } catch (error) {
+          const appPage = await caches.match(new URL('./Spesa.html', self.registration.scope).href);
+          if (appPage) {
+            return appPage;
+          }
+          console.error('Impossibile caricare CASA: nessuna copia offline disponibile.', error);
+          throw error;
+        }
+      })()
     );
     return;
   }
 
   event.respondWith(
     caches.match(request)
-      .then((cachedResponse) => cachedResponse || fetch(request).then((response) => {
+      .then((cachedResponse) => cachedResponse || fetch(request).then(async (response) => {
         if (response.ok) {
-          const responseCopy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseCopy));
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(request, response.clone());
         }
         return response;
       }))
