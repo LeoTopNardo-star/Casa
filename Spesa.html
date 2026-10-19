@@ -269,40 +269,10 @@
     }
 
     .file-name {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 6px;
       overflow-wrap: anywhere;
       padding: 0 8px 5px;
       color: #78857b;
       font-size: 0.75rem;
-    }
-
-    .file-delete {
-      padding: 2px 6px;
-      border: 1px solid #e5e9e3;
-      border-radius: 5px;
-      color: #8a5149;
-      background: #fff;
-      font: inherit;
-      font-size: 0.7rem;
-      cursor: pointer;
-    }
-
-    .file-delete:hover {
-      color: #793d35;
-      background: #f8eeeb;
-    }
-
-    .file-delete:focus-visible {
-      outline: 2px solid #58816a;
-      outline-offset: 2px;
-    }
-
-    .file-delete-error {
-      flex-basis: 100%;
-      color: #8a5149;
     }
 
     .trip-menu {
@@ -897,16 +867,6 @@
 
     [data-theme="dark"] .submenu-delete:hover {
       color: #f0c2b8;
-      background: #402c29;
-    }
-
-    [data-theme="dark"] .file-delete {
-      border-color: #57413d;
-      color: #f0c2b8;
-      background: #202a23;
-    }
-
-    [data-theme="dark"] .file-delete:hover {
       background: #402c29;
     }
 
@@ -2192,56 +2152,24 @@
     });
 
     function showOfflineUpload(input, fileRecord) {
-      const key = input.dataset.offlineFileKey;
-      const matchingInputs = [...document.querySelectorAll('.upload-item input[type="file"]')]
-        .filter((candidate) => candidate.dataset.offlineFileKey === key);
+      const status = input.closest('.upload-item').querySelector('.file-name');
+      const previousUrl = objectUrls.get(input);
+      if (previousUrl) {
+        URL.revokeObjectURL(previousUrl);
+        objectUrls.delete(input);
+      }
 
-      matchingInputs.forEach((matchingInput) => {
-        const previousUrl = objectUrls.get(matchingInput);
-        if (previousUrl) {
-          URL.revokeObjectURL(previousUrl);
-          objectUrls.delete(matchingInput);
-        }
+      status.replaceChildren();
+      status.append(document.createTextNode(`Salvato offline: ${fileRecord.name} `));
 
-        const status = matchingInput.closest('.upload-item').querySelector('.file-name');
-        status.replaceChildren();
-        status.append(document.createTextNode(`Salvato offline: ${fileRecord.name} `));
-
-        const openLink = document.createElement('a');
-        const objectUrl = URL.createObjectURL(fileRecord.blob);
-        objectUrls.set(matchingInput, objectUrl);
-        openLink.href = objectUrl;
-        openLink.download = fileRecord.name;
-        openLink.textContent = 'Apri / scarica';
-        openLink.setAttribute('aria-label', `Apri o scarica ${fileRecord.name}`);
-
-        const deleteButton = document.createElement('button');
-        deleteButton.className = 'file-delete';
-        deleteButton.type = 'button';
-        deleteButton.textContent = 'Elimina';
-        deleteButton.setAttribute('aria-label', `Elimina il file ${fileRecord.name}`);
-        deleteButton.addEventListener('click', async () => {
-          deleteButton.disabled = true;
-          try {
-            await deleteOfflineUpload(key);
-            revokeOfflineUploadUrls(key);
-            matchingInputs.forEach((fileInput) => {
-              fileInput.value = '';
-              fileInput.closest('.upload-item').querySelector('.file-name').replaceChildren();
-            });
-          } catch (error) {
-            console.error(`Impossibile eliminare il file ${fileRecord.name}:`, error);
-            deleteButton.disabled = false;
-            const errorMessage = document.createElement('span');
-            errorMessage.className = 'file-delete-error';
-            errorMessage.textContent = `Impossibile eliminare il file. ${error.message}`;
-            status.querySelector('.file-delete-error')?.remove();
-            status.append(errorMessage);
-          }
-        });
-
-        status.append(openLink, deleteButton);
-      });
+      const openLink = document.createElement('a');
+      const objectUrl = URL.createObjectURL(fileRecord.blob);
+      objectUrls.set(input, objectUrl);
+      openLink.href = objectUrl;
+      openLink.download = fileRecord.name;
+      openLink.textContent = 'Apri / scarica';
+      openLink.setAttribute('aria-label', `Apri o scarica ${fileRecord.name}`);
+      status.append(openLink);
     }
 
     function setupOfflineFileInput(input) {
@@ -2465,4 +2393,76 @@
 
       homeImageObjectUrl = URL.createObjectURL(fileRecord.blob);
       homeImagePreview.src = homeImageObjectUrl;
-      h
+      homeImagePreview.alt = `Immagine personalizzata della homepage: ${fileRecord.name}`;
+      homeImageContainer.hidden = false;
+      removeHomeImageButton.hidden = false;
+      homeImageStatus.textContent = `Immagine salvata offline: ${fileRecord.name}`;
+    }
+
+    homeImageInput.addEventListener('change', async () => {
+      const imageFile = homeImageInput.files && homeImageInput.files[0];
+      if (!imageFile) {
+        return;
+      }
+
+      if (!imageFile.type.startsWith('image/')) {
+        homeImageStatus.textContent = 'Seleziona un file immagine valido.';
+        homeImageInput.value = '';
+        return;
+      }
+
+      homeImageStatus.textContent = 'Salvataggio dell’immagine offline in corso...';
+      try {
+        await saveOfflineUpload(homeImageKey, imageFile);
+        displayHomeImage({
+          name: imageFile.name,
+          blob: imageFile.slice(0, imageFile.size, imageFile.type)
+        });
+      } catch (error) {
+        console.error('Impossibile salvare l’immagine della homepage offline:', error);
+        homeImageStatus.textContent = `Impossibile salvare l’immagine offline. ${error.message}`;
+      }
+    });
+
+    removeHomeImageButton.addEventListener('click', async () => {
+      removeHomeImageButton.disabled = true;
+      try {
+        await deleteOfflineUpload(homeImageKey);
+        if (homeImageObjectUrl) {
+          URL.revokeObjectURL(homeImageObjectUrl);
+          homeImageObjectUrl = undefined;
+        }
+        homeImagePreview.removeAttribute('src');
+        homeImageContainer.hidden = true;
+        removeHomeImageButton.hidden = true;
+        homeImageStatus.textContent = 'Immagine rimossa.';
+        homeImageInput.value = '';
+      } catch (error) {
+        console.error('Impossibile rimuovere l’immagine della homepage:', error);
+        homeImageStatus.textContent = `Impossibile rimuovere l’immagine. ${error.message}`;
+      } finally {
+        removeHomeImageButton.disabled = false;
+      }
+    });
+
+    getOfflineUpload(homeImageKey)
+      .then((imageRecord) => {
+        if (imageRecord) {
+          displayHomeImage(imageRecord);
+        }
+      })
+      .catch((error) => {
+        console.error('Impossibile recuperare l’immagine offline della homepage:', error);
+        homeImageStatus.textContent = `Impossibile recuperare l’immagine salvata. ${error.message}`;
+      });
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .catch((error) => console.error('Impossibile attivare il supporto offline di CASA:', error));
+      });
+    }
+  </script>
+</body>
+</html>
