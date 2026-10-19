@@ -1,4 +1,4 @@
-const CACHE_NAME = 'casa-pwa-v6';
+const CACHE_NAME = 'casa-pwa-v7';
 const APP_FILES = [
   './Spesa.html',
   './manifest.webmanifest',
