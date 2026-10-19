@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#111713">
+  <meta name="theme-color" content="#f5f6f2">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>CASA</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./casa.svg" type="image/svg+xml">
@@ -44,7 +44,7 @@
       z-index: 1;
       background: linear-gradient(180deg, #fff 0%, #fbfcfa 100%);
       border-right: 1px solid #e5e9e3;
-      box-shadow: 8px 0 28px rgb(38 53 45 / 5%);
+      box-shadow: 8px 0 32px rgb(38 53 45 / 10%);
     }
 
     .brand {
@@ -56,7 +56,7 @@
       border-radius: 16px;
       color: #315b45;
       background: linear-gradient(135deg, #fff 0%, #f0f6ef 100%);
-      box-shadow: 0 8px 20px rgb(38 53 45 / 8%);
+      box-shadow: 0 10px 24px rgb(38 53 45 / 11%);
       font-family: inherit;
       font-size: 1.7rem;
       font-weight: 750;
@@ -68,7 +68,7 @@
 
     .brand:hover {
       transform: translateY(-2px);
-      box-shadow: 0 11px 24px rgb(38 53 45 / 12%);
+      box-shadow: 0 13px 28px rgb(38 53 45 / 16%);
     }
 
     .brand:focus-visible {
@@ -86,20 +86,20 @@
       border: 1px solid #edf0ec;
       border-radius: 13px;
       background: #fff;
-      box-shadow: 0 3px 10px rgb(38 53 45 / 4%);
+      box-shadow: 0 4px 13px rgb(38 53 45 / 6%);
       transition: box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease;
     }
 
     .menu > details:hover {
       transform: translateY(-1px);
       border-color: #dce6dc;
-      box-shadow: 0 7px 18px rgb(38 53 45 / 8%);
+      box-shadow: 0 9px 22px rgb(38 53 45 / 12%);
     }
 
     details[open] {
       border-color: #dce6dc;
       background: #f9fbf8;
-      box-shadow: 0 8px 20px rgb(38 53 45 / 7%);
+      box-shadow: 0 10px 24px rgb(38 53 45 / 10%);
     }
 
     summary {
@@ -152,7 +152,7 @@
       background: #fff;
       border: 1px solid #edf0ec;
       border-radius: 10px;
-      box-shadow: 0 4px 12px rgb(38 53 45 / 6%);
+      box-shadow: 0 5px 15px rgb(38 53 45 / 9%);
       font-size: 0.85rem;
       line-height: 1.5;
     }
@@ -309,7 +309,7 @@
       border: 1px solid #e5e9e3;
       border-radius: 18px;
       background: #fff;
-      box-shadow: 0 12px 32px rgb(38 53 45 / 5%);
+      box-shadow: 0 14px 36px rgb(38 53 45 / 9%);
     }
 
     .shopping-panel[hidden],
@@ -403,6 +403,7 @@
       padding: 8px 12px;
       border: 1px solid #edf0ec;
       border-radius: 10px;
+      box-shadow: 0 3px 9px rgb(38 53 45 / 4%);
     }
 
     .shopping-item input[type="checkbox"] {
@@ -480,181 +481,250 @@
       margin: 14px 0 0;
     }
 
-    :root {
+    .trip-menu,
+    .trip-menu[open] {
+      border: 0;
+      border-left: 1px solid #dce6dc;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .theme-switcher {
+      position: fixed;
+      z-index: 5;
+      bottom: 16px;
+      left: 16px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px;
+      border: 1px solid #dce4dc;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 8px 22px rgb(38 53 45 / 16%);
+    }
+
+    .theme-switcher button {
+      min-height: 36px;
+      padding: 0 11px;
+      border: 0;
+      border-radius: 8px;
+      color: #526257;
+      background: transparent;
+      font: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .theme-switcher button[aria-pressed="true"] {
+      color: #fff;
+      background: #315b45;
+    }
+
+    .theme-switcher button:focus-visible {
+      outline: 2px solid #58816a;
+      outline-offset: 2px;
+    }
+
+    :root[data-theme="dark"] {
       color-scheme: dark;
       color: #e5eee7;
       background: #111713;
     }
 
-    body {
+    [data-theme="dark"] {
+      color: #e5eee7;
+    }
+
+    [data-theme="dark"] body {
       background: #111713;
     }
 
-    .sidebar {
+    [data-theme="dark"] .sidebar {
       background: linear-gradient(180deg, #1b241e 0%, #171f1a 100%);
       border-color: #2b372e;
-      box-shadow: 8px 0 28px rgb(0 0 0 / 24%);
+      box-shadow: 8px 0 32px rgb(0 0 0 / 28%);
     }
 
-    .brand {
+    [data-theme="dark"] .brand {
       color: #c5e2ca;
-      background: linear-gradient(135deg, #6d9c7b 0%, #1e2b22 100%);
+      background: linear-gradient(135deg, #27382c 0%, #1e2b22 100%);
       border-color: #3b5140;
-      box-shadow: 0 8px 20px rgb(0 0 0 / 22%);
+      box-shadow: 0 10px 24px rgb(0 0 0 / 26%);
     }
 
-    .brand:hover {
-      box-shadow: 0 11px 24px rgb(0 0 0 / 32%);
+    [data-theme="dark"] .brand:hover {
+      box-shadow: 0 13px 28px rgb(0 0 0 / 34%);
     }
 
-    details {
+    [data-theme="dark"] details {
       border-color: #303d33;
-      background: #519465;
-      box-shadow: 0 3px 10px rgb(0 0 0 / 18%);
+      background: #202a23;
+      box-shadow: 0 4px 13px rgb(0 0 0 / 22%);
     }
 
-    .menu > details:hover {
+    [data-theme="dark"] .menu > details:hover {
       border-color: #465b49;
-      box-shadow: 0 7px 18px rgb(0 0 0 / 28%);
+      box-shadow: 0 9px 22px rgb(0 0 0 / 32%);
     }
 
-    details[open] {
+    [data-theme="dark"] details[open] {
       border-color: #405544;
       background: #1c271f;
-      box-shadow: 0 8px 20px rgb(0 0 0 / 24%);
+      box-shadow: 0 10px 24px rgb(0 0 0 / 28%);
     }
 
-    .trip-menu,
-    .trip-menu[open],
-    .year-menu,
-    .year-menu[open] {
+    [data-theme="dark"] .trip-menu,
+    [data-theme="dark"] .trip-menu[open],
+    [data-theme="dark"] .year-menu,
+    [data-theme="dark"] .year-menu[open] {
       border: 0;
       border-left: 1px solid #405544;
       background: transparent;
       box-shadow: none;
     }
 
-    summary {
+    [data-theme="dark"] summary {
       color: #d5e0d7;
     }
 
-    summary:hover,
-    details[open] summary {
+    [data-theme="dark"] summary:hover,
+    [data-theme="dark"] details[open] summary {
       color: #c5e2ca;
       background: #29392d;
     }
 
-    summary:focus-visible,
-    .brand:focus-visible,
-    .upload-item label:focus-within {
+    [data-theme="dark"] summary:focus-visible,
+    [data-theme="dark"] .brand:focus-visible,
+    [data-theme="dark"] .upload-item label:focus-within {
       outline-color: #9bc6a2;
     }
 
-    .submenu {
+    [data-theme="dark"] .submenu {
       color: #a7b5aa;
-      background: #519465;
-      border-color: #198633;
-      box-shadow: 0 4px 12px rgb(0 0 0 / 22%);
+      background: #19221c;
+      border-color: #303d33;
+      box-shadow: 0 5px 15px rgb(0 0 0 / 26%);
     }
 
-    .category-button,
-    .upload-item label {
+    [data-theme="dark"] .category-button,
+    [data-theme="dark"] .upload-item label {
       color: #c0cdc3;
     }
 
-    .category-button:hover,
-    .category-button[aria-pressed="true"],
-    .upload-item label:hover {
+    [data-theme="dark"] .category-button:hover,
+    [data-theme="dark"] .category-button[aria-pressed="true"],
+    [data-theme="dark"] .upload-item label:hover {
       color: #d4ead7;
       background: #2b3c30;
     }
 
-    .upload-action {
+    [data-theme="dark"] .upload-action {
       color: #a9d2b0;
     }
 
-    .file-name,
-    .welcome p,
-    .shopping-description,
-    .shopping-item-category,
-    .empty-list,
-    .storage-status {
+    [data-theme="dark"] .file-name,
+    [data-theme="dark"] .welcome p,
+    [data-theme="dark"] .shopping-description,
+    [data-theme="dark"] .shopping-item-category,
+    [data-theme="dark"] .empty-list,
+    [data-theme="dark"] .storage-status {
       color: #a2afa5;
     }
 
-    .trip-menu,
-    .year-menu {
+    [data-theme="dark"] .trip-menu,
+    [data-theme="dark"] .year-menu {
       border-left-color: #405544;
     }
 
-    .welcome-mark {
+    [data-theme="dark"] .welcome-mark {
       color: #c5e2ca;
       background: #293b2e;
     }
 
-    h1 {
+    [data-theme="dark"] h1 {
       color: #e5eee7;
     }
 
-    .shopping-panel {
+    [data-theme="dark"] .shopping-panel {
       border-color: #303d33;
       background: #1b241e;
-      box-shadow: 0 12px 32px rgb(0 0 0 / 24%);
+      box-shadow: 0 14px 36px rgb(0 0 0 / 28%);
     }
 
-    .shopping-form input,
-    .shopping-form select,
-    .shopping-form button,
-    .currency-field {
+    [data-theme="dark"] .shopping-form input,
+    [data-theme="dark"] .shopping-form select,
+    [data-theme="dark"] .shopping-form button,
+    [data-theme="dark"] .currency-field {
       border-color: #3a4a3d;
       color: #e1e9e2;
       background-color: #202b23;
     }
 
-    .shopping-form input::placeholder,
-    .currency-field input::placeholder {
+    [data-theme="dark"] .shopping-form input::placeholder,
+    [data-theme="dark"] .currency-field input::placeholder {
       color: #89998d;
     }
 
-    .shopping-form button {
+    [data-theme="dark"] .shopping-form button {
       border-color: #52785b;
       color: #f1f7f2;
       background: #42654a;
     }
 
-    .shopping-form button:hover {
+    [data-theme="dark"] .shopping-form button:hover {
       background: #527a5b;
     }
 
-    .shopping-item {
+    [data-theme="dark"] .shopping-item {
       border-color: #303d33;
       background: #202a23;
+      box-shadow: 0 3px 9px rgb(0 0 0 / 18%);
     }
 
-    .shopping-item input[type="checkbox"] {
+    [data-theme="dark"] .shopping-item input[type="checkbox"] {
       accent-color: #8fb997;
     }
 
-    .item-amount {
+    [data-theme="dark"] .item-amount {
       color: #c0cdc3;
     }
 
-    .item-amount input {
+    [data-theme="dark"] .item-amount input {
       border-color: #3a4a3d;
       color: #e1e9e2;
       background: #19221c;
     }
 
-    .shopping-item.done .shopping-item-text {
+    [data-theme="dark"] .shopping-item.done .shopping-item-text {
       color: #829087;
     }
 
-    .remove-item {
+    [data-theme="dark"] .remove-item {
       color: #e1a69a;
     }
 
-    .remove-item:hover {
+    [data-theme="dark"] .remove-item:hover {
       background: #402c29;
+    }
+
+    [data-theme="dark"] .theme-switcher {
+      border-color: #3a4a3d;
+      background: #1b241e;
+      box-shadow: 0 8px 22px rgb(0 0 0 / 34%);
+    }
+
+    [data-theme="dark"] .theme-switcher button {
+      color: #c0cdc3;
+    }
+
+    [data-theme="dark"] .theme-switcher button[aria-pressed="true"] {
+      color: #17211a;
+      background: #a9d2b0;
+    }
+
+    [data-theme="dark"] .theme-switcher button:focus-visible {
+      outline-color: #9bc6a2;
     }
 
     @media (max-width: 640px) {
@@ -688,6 +758,11 @@
 
       .item-amount {
         flex-basis: 96px;
+      }
+
+      .theme-switcher {
+        bottom: 12px;
+        left: 12px;
       }
     }
   </style>
@@ -775,7 +850,50 @@
       </section>
     </main>
   </div>
+  <div class="theme-switcher" role="group" aria-label="Seleziona il tema">
+    <button type="button" data-theme-choice="light" aria-pressed="true">☀ Chiaro</button>
+    <button type="button" data-theme-choice="dark" aria-pressed="false">☾ Scuro</button>
+  </div>
   <script>
+    const themeStorageKey = 'casa-theme';
+    const themeButtons = document.querySelectorAll('[data-theme-choice]');
+    const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+
+    function applyTheme(theme, savePreference = false) {
+      const isDark = theme === 'dark';
+      document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+      document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+      themeColorMeta.content = isDark ? '#111713' : '#f5f6f2';
+      themeButtons.forEach((button) => {
+        button.setAttribute('aria-pressed', String(button.dataset.themeChoice === theme));
+      });
+
+      if (savePreference) {
+        try {
+          localStorage.setItem(themeStorageKey, theme);
+        } catch (error) {
+          console.error('Impossibile salvare la preferenza del tema:', error);
+        }
+      }
+    }
+
+    let savedTheme = 'light';
+    try {
+      const storedTheme = localStorage.getItem(themeStorageKey);
+      if (storedTheme === 'light' || storedTheme === 'dark') {
+        savedTheme = storedTheme;
+      }
+    } catch (error) {
+      console.error('Impossibile leggere la preferenza del tema:', error);
+    }
+    applyTheme(savedTheme);
+
+    themeButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        applyTheme(button.dataset.themeChoice, true);
+      });
+    });
+
     const storageKey = 'casa-shopping-list';
     const shoppingPanel = document.querySelector('.shopping-panel');
     const welcomePanel = document.querySelector('.welcome');
