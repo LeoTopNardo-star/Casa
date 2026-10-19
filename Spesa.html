@@ -2289,4 +2289,50 @@
           blob: imageFile.slice(0, imageFile.size, imageFile.type)
         });
       } catch (error) {
-       
+        console.error('Impossibile salvare l’immagine della homepage offline:', error);
+        homeImageStatus.textContent = `Impossibile salvare l’immagine offline. ${error.message}`;
+      }
+    });
+
+    removeHomeImageButton.addEventListener('click', async () => {
+      removeHomeImageButton.disabled = true;
+      try {
+        await deleteOfflineUpload(homeImageKey);
+        if (homeImageObjectUrl) {
+          URL.revokeObjectURL(homeImageObjectUrl);
+          homeImageObjectUrl = undefined;
+        }
+        homeImagePreview.removeAttribute('src');
+        homeImageContainer.hidden = true;
+        removeHomeImageButton.hidden = true;
+        homeImageStatus.textContent = 'Immagine rimossa.';
+        homeImageInput.value = '';
+      } catch (error) {
+        console.error('Impossibile rimuovere l’immagine della homepage:', error);
+        homeImageStatus.textContent = `Impossibile rimuovere l’immagine. ${error.message}`;
+      } finally {
+        removeHomeImageButton.disabled = false;
+      }
+    });
+
+    getOfflineUpload(homeImageKey)
+      .then((imageRecord) => {
+        if (imageRecord) {
+          displayHomeImage(imageRecord);
+        }
+      })
+      .catch((error) => {
+        console.error('Impossibile recuperare l’immagine offline della homepage:', error);
+        homeImageStatus.textContent = `Impossibile recuperare l’immagine salvata. ${error.message}`;
+      });
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .catch((error) => console.error('Impossibile attivare il supporto offline di CASA:', error));
+      });
+    }
+  </script>
+</body>
+</html>
