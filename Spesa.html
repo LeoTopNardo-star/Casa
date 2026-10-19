@@ -275,6 +275,84 @@
       text-align: center;
     }
 
+    .home-image {
+      max-width: min(100%, 520px);
+      margin: 0 auto 24px;
+    }
+
+    .home-image[hidden],
+    .home-image-preview[hidden] {
+      display: none;
+    }
+
+    .home-image-preview {
+      display: block;
+      width: 100%;
+      max-height: 320px;
+      border: 1px solid #e5e9e3;
+      border-radius: 18px;
+      object-fit: cover;
+      box-shadow: 0 14px 32px rgb(38 53 45 / 14%);
+    }
+
+    .home-image-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .home-image-actions label,
+    .home-image-actions button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 0 12px;
+      border: 1px solid #dce4dc;
+      border-radius: 9px;
+      color: #35483c;
+      background: #fff;
+      box-shadow: 0 4px 12px rgb(38 53 45 / 8%);
+      font: inherit;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+
+    .home-image-actions label:hover,
+    .home-image-actions button:hover {
+      background: #edf3ed;
+      box-shadow: 0 6px 16px rgb(38 53 45 / 12%);
+    }
+
+    .home-image-actions button[hidden] {
+      display: none;
+    }
+
+    .home-image-actions label:focus-within,
+    .home-image-actions button:focus-visible {
+      outline: 2px solid #58816a;
+      outline-offset: 2px;
+    }
+
+    .home-image-actions input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      clip-path: inset(50%);
+    }
+
+    .home-image-status {
+      min-height: 1.4em;
+      margin: 8px 0 0;
+      color: #78857b;
+      font-size: 0.82rem;
+    }
+
     .welcome-mark {
       display: grid;
       width: 64px;
@@ -642,6 +720,34 @@
       background: #293b2e;
     }
 
+    [data-theme="dark"] .home-image-preview {
+      border-color: #303d33;
+      box-shadow: 0 14px 32px rgb(0 0 0 / 30%);
+    }
+
+    [data-theme="dark"] .home-image-actions label,
+    [data-theme="dark"] .home-image-actions button {
+      border-color: #3a4a3d;
+      color: #d5e0d7;
+      background: #202a23;
+      box-shadow: 0 4px 12px rgb(0 0 0 / 24%);
+    }
+
+    [data-theme="dark"] .home-image-actions label:hover,
+    [data-theme="dark"] .home-image-actions button:hover {
+      background: #29392d;
+      box-shadow: 0 6px 16px rgb(0 0 0 / 32%);
+    }
+
+    [data-theme="dark"] .home-image-actions label:focus-within,
+    [data-theme="dark"] .home-image-actions button:focus-visible {
+      outline-color: #9bc6a2;
+    }
+
+    [data-theme="dark"] .home-image-status {
+      color: #a2afa5;
+    }
+
     [data-theme="dark"] h1 {
       color: #e5eee7;
     }
@@ -809,9 +915,19 @@
     </aside>
     <main>
       <section class="welcome" aria-label="Benvenuto">
+        <figure class="home-image" id="home-image" hidden>
+          <img class="home-image-preview" id="home-image-preview" alt="Immagine personalizzata della homepage">
+        </figure>
         <div class="welcome-mark" aria-hidden="true">⌂</div>
         <h1>La tua casa, in ordine.</h1>
         <p>Scegli una sezione dal menu per iniziare.</p>
+        <div class="home-image-actions">
+          <label for="home-image-input">Scegli un’immagine
+            <input id="home-image-input" type="file" accept="image/*" aria-label="Scegli un’immagine per la homepage">
+          </label>
+          <button id="remove-home-image" type="button" hidden>Rimuovi immagine</button>
+        </div>
+        <p class="home-image-status" id="home-image-status" role="status" aria-live="polite"></p>
       </section>
       <section class="shopping-panel" aria-labelledby="shopping-title" hidden>
         <h1 id="shopping-title">Lista spesa</h1>
@@ -1299,6 +1415,17 @@
       });
     }
 
+    async function deleteOfflineUpload(key) {
+      const database = await openUploadDatabase();
+      return new Promise((resolve, reject) => {
+        const transaction = database.transaction(uploadObjectStoreName, 'readwrite');
+        transaction.objectStore(uploadObjectStoreName).delete(key);
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error || new Error('Impossibile rimuovere il file salvato offline.'));
+        transaction.onabort = () => reject(transaction.error || new Error('Rimozione del file offline annullata.'));
+      });
+    }
+
     function showOfflineUpload(input, fileRecord) {
       const status = input.closest('.upload-item').querySelector('.file-name');
       const previousUrl = objectUrls.get(input.dataset.offlineFileKey);
@@ -1353,6 +1480,84 @@
             `Impossibile recuperare il file offline. ${error.message}`;
         });
     });
+
+    const homeImageKey = 'casa-home-image';
+    const homeImageInput = document.querySelector('#home-image-input');
+    const homeImageContainer = document.querySelector('#home-image');
+    const homeImagePreview = document.querySelector('#home-image-preview');
+    const removeHomeImageButton = document.querySelector('#remove-home-image');
+    const homeImageStatus = document.querySelector('#home-image-status');
+    let homeImageObjectUrl;
+
+    function displayHomeImage(fileRecord) {
+      if (homeImageObjectUrl) {
+        URL.revokeObjectURL(homeImageObjectUrl);
+      }
+
+      homeImageObjectUrl = URL.createObjectURL(fileRecord.blob);
+      homeImagePreview.src = homeImageObjectUrl;
+      homeImagePreview.alt = `Immagine personalizzata della homepage: ${fileRecord.name}`;
+      homeImageContainer.hidden = false;
+      removeHomeImageButton.hidden = false;
+      homeImageStatus.textContent = `Immagine salvata offline: ${fileRecord.name}`;
+    }
+
+    homeImageInput.addEventListener('change', async () => {
+      const imageFile = homeImageInput.files && homeImageInput.files[0];
+      if (!imageFile) {
+        return;
+      }
+
+      if (!imageFile.type.startsWith('image/')) {
+        homeImageStatus.textContent = 'Seleziona un file immagine valido.';
+        homeImageInput.value = '';
+        return;
+      }
+
+      homeImageStatus.textContent = 'Salvataggio dell’immagine offline in corso...';
+      try {
+        await saveOfflineUpload(homeImageKey, imageFile);
+        displayHomeImage({
+          name: imageFile.name,
+          blob: imageFile.slice(0, imageFile.size, imageFile.type)
+        });
+      } catch (error) {
+        console.error('Impossibile salvare l’immagine della homepage offline:', error);
+        homeImageStatus.textContent = `Impossibile salvare l’immagine offline. ${error.message}`;
+      }
+    });
+
+    removeHomeImageButton.addEventListener('click', async () => {
+      removeHomeImageButton.disabled = true;
+      try {
+        await deleteOfflineUpload(homeImageKey);
+        if (homeImageObjectUrl) {
+          URL.revokeObjectURL(homeImageObjectUrl);
+          homeImageObjectUrl = undefined;
+        }
+        homeImagePreview.removeAttribute('src');
+        homeImageContainer.hidden = true;
+        removeHomeImageButton.hidden = true;
+        homeImageStatus.textContent = 'Immagine rimossa.';
+        homeImageInput.value = '';
+      } catch (error) {
+        console.error('Impossibile rimuovere l’immagine della homepage:', error);
+        homeImageStatus.textContent = `Impossibile rimuovere l’immagine. ${error.message}`;
+      } finally {
+        removeHomeImageButton.disabled = false;
+      }
+    });
+
+    getOfflineUpload(homeImageKey)
+      .then((imageRecord) => {
+        if (imageRecord) {
+          displayHomeImage(imageRecord);
+        }
+      })
+      .catch((error) => {
+        console.error('Impossibile recuperare l’immagine offline della homepage:', error);
+        homeImageStatus.textContent = `Impossibile recuperare l’immagine salvata. ${error.message}`;
+      });
   </script>
   <script>
     if ('serviceWorker' in navigator) {
