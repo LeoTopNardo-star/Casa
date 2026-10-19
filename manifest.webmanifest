@@ -1,0 +1,20 @@
+{
+  "id": "./Spesa.html",
+  "name": "CASA - Gestione spese",
+  "short_name": "CASA",
+  "description": "Liste della spesa, bollette e organizzazione dei viaggi.",
+  "lang": "it",
+  "start_url": "./Spesa.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#111713",
+  "theme_color": "#111713",
+  "icons": [
+    {
+      "src": "./casa.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
