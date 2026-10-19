@@ -171,7 +171,8 @@
       list-style: none;
     }
 
-    .menu-category-row {
+    .category-entry,
+    .wishlist-item {
       display: flex;
       align-items: center;
       gap: 4px;
@@ -190,25 +191,29 @@
       cursor: pointer;
     }
 
-    .menu-remove-button {
+    .submenu-delete {
+      display: grid;
       flex: 0 0 auto;
-      min-height: 30px;
-      padding: 0 7px;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      place-items: center;
       border: 1px solid #e5e9e3;
       border-radius: 7px;
       color: #8a5149;
       background: #fff;
       font: inherit;
-      font-size: 0.72rem;
+      font-size: 1.15rem;
+      line-height: 1;
       cursor: pointer;
     }
 
-    .menu-remove-button:hover {
+    .submenu-delete:hover {
       color: #793d35;
       background: #f8eeeb;
     }
 
-    .menu-remove-button:focus-visible {
+    .submenu-delete:focus-visible {
       outline: 2px solid #58816a;
       outline-offset: 2px;
     }
@@ -292,15 +297,20 @@
     }
 
     .year-menu > summary {
-      padding-right: 76px;
+      padding-right: 44px;
     }
 
-    .year-menu > .menu-remove-button {
+    .year-menu > .submenu-delete {
       position: absolute;
       z-index: 1;
-      top: 5px;
-      right: 6px;
-      min-height: 30px;
+      top: 6px;
+      right: 7px;
+    }
+
+    .trip-menu-delete-row {
+      display: flex;
+      justify-content: flex-end;
+      padding: 0 8px 8px;
     }
 
     .trip-menu .submenu,
@@ -327,8 +337,7 @@
       font-size: 0.82rem;
     }
 
-    .menu-add-form button,
-    .wishlist-remove {
+    .menu-add-form button {
       min-height: 36px;
       padding: 0 10px;
       border: 1px solid #dce4dc;
@@ -340,14 +349,12 @@
       cursor: pointer;
     }
 
-    .menu-add-form button:hover,
-    .wishlist-remove:hover {
+    .menu-add-form button:hover {
       background: #e7efe7;
     }
 
     .menu-add-form input:focus-visible,
-    .menu-add-form button:focus-visible,
-    .wishlist-remove:focus-visible {
+    .menu-add-form button:focus-visible {
       outline: 2px solid #58816a;
       outline-offset: 2px;
     }
@@ -368,20 +375,11 @@
     }
 
     .wishlist-item {
-      display: flex;
-      align-items: center;
       justify-content: space-between;
       gap: 8px;
       overflow-wrap: anywhere;
       color: #526257;
       font-size: 0.85rem;
-    }
-
-    .wishlist-remove {
-      flex: 0 0 auto;
-      min-height: 30px;
-      padding: 0 7px;
-      font-size: 0.72rem;
     }
 
     main {
@@ -830,18 +828,19 @@
     }
 
     [data-theme="dark"] .menu-add-form button,
-    [data-theme="dark"] .wishlist-remove,
-    [data-theme="dark"] .menu-remove-button {
+    [data-theme="dark"] .submenu-delete {
       border-color: #3a4a3d;
       color: #d5e0d7;
       background: #202a23;
     }
 
-    [data-theme="dark"] .menu-add-form button:hover,
-    [data-theme="dark"] .wishlist-remove:hover,
-    [data-theme="dark"] .menu-remove-button:hover {
-      color: #f0c2b8;
+    [data-theme="dark"] .menu-add-form button:hover {
       background: #29392d;
+    }
+
+    [data-theme="dark"] .submenu-delete:hover {
+      color: #f0c2b8;
+      background: #402c29;
     }
 
     [data-theme="dark"] .menu-add-status,
@@ -1186,6 +1185,7 @@
     const shoppingCategoriesStorageKey = 'casa-shopping-categories';
     const removedShoppingCategoriesStorageKey = 'casa-removed-shopping-categories';
     const baseShoppingCategories = ['Cibo', 'Bevande', 'Materiale'];
+    const baseTrips = [{ id: 'thailandia', name: 'Thailandia' }];
     const wishlistList = document.querySelector('#wishlist-items');
     const wishlistForm = document.querySelector('#wishlist-form');
     const wishlistNameInput = document.querySelector('#wishlist-name-input');
@@ -1196,8 +1196,7 @@
     let customShoppingCategories = [];
     let removedShoppingCategories = [];
     let shoppingCategories = [];
-    const baseTrips = [{ id: 'thailandia', name: 'Thailandia' }];
-    let trips = [{ id: 'thailandia', name: 'Thailandia' }];
+    let trips = [...baseTrips];
     let removedTrips = [];
     let activeTripId = 'thailandia';
     let activeCategory = 'Tutte';
@@ -1248,12 +1247,11 @@
           /^[a-zA-Z0-9-]+$/.test(trip.id) &&
           typeof trip.name === 'string' &&
           trip.name.trim() &&
-          trip.name.length <= 40 &&
-          !baseTrips.some((baseTrip) => baseTrip.id === trip.id)
+          trip.name.length <= 40
         );
         trips = [
           ...baseTrips.filter((trip) => !removedTrips.includes(trip.id)),
-          ...validTrips
+          ...validTrips.filter((trip) => trip.id !== 'thailandia')
         ];
       }
     } catch (error) {
@@ -1367,20 +1365,20 @@
         itemCategoryInput.append(option);
 
         const item = document.createElement('li');
-        item.className = 'menu-category-row';
+        item.className = 'category-entry';
         const button = document.createElement('button');
         button.className = 'category-button';
         button.type = 'button';
         button.dataset.category = category;
         button.setAttribute('aria-pressed', String(activeCategory === category));
         button.textContent = category;
-        const removeButton = document.createElement('button');
-        removeButton.className = 'menu-remove-button';
-        removeButton.type = 'button';
-        removeButton.dataset.removeShoppingCategory = category;
-        removeButton.textContent = 'Rimuovi';
-        removeButton.setAttribute('aria-label', `Rimuovi la categoria ${category}`);
-        item.append(button, removeButton);
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'submenu-delete';
+        deleteButton.type = 'button';
+        deleteButton.dataset.deleteShoppingCategory = category;
+        deleteButton.textContent = '×';
+        deleteButton.setAttribute('aria-label', `Elimina la categoria ${category}`);
+        item.append(button, deleteButton);
         shoppingCategoryList.append(item);
       });
 
@@ -1408,12 +1406,8 @@
       }
     }
 
-    function renderShoppingItems() {
-      shoppingItemsList.replaceChildren();
-      const visibleItems = shoppingItems.filter((item) =>
-        activeCategory === 'Tutte' || item.category === activeCategory
-      );
-
+    function renderItemList(list, items, visibleItems, emptyMessage, emptyText, saveItems, renderItems, removeItem, showAmount = false) {
+      list.replaceChildren();
       visibleItems.forEach((item) => {
         const row = document.createElement('li');
         row.className = `shopping-item${item.done ? ' done' : ''}`;
@@ -1424,17 +1418,40 @@
         checkbox.setAttribute('aria-label', `Segna ${item.name} come ${item.done ? 'da completare' : 'completata'}`);
         checkbox.addEventListener('change', () => {
           item.done = checkbox.checked;
-          saveShoppingItems();
-          renderShoppingItems();
+          saveItems();
+          renderItems();
         });
 
         const textContainer = document.createElement('span');
         textContainer.className = 'shopping-item-text';
-        textContainer.append(document.createTextNode(item.name));
+        textContainer.append(item.name);
         const category = document.createElement('span');
         category.className = 'shopping-item-category';
         category.textContent = item.category;
         textContainer.append(category);
+
+        const rowItems = [checkbox, textContainer];
+        if (showAmount) {
+          const amountContainer = document.createElement('label');
+          amountContainer.className = 'item-amount';
+          amountContainer.append(document.createTextNode('€'));
+          const amountInput = document.createElement('input');
+          Object.assign(amountInput, {
+            type: 'number',
+            min: '0',
+            step: '0.01',
+            inputMode: 'decimal',
+            placeholder: '0,00',
+            value: item.amount === null ? '' : String(item.amount)
+          });
+          amountInput.setAttribute('aria-label', `Importo in euro per ${item.name}`);
+          amountInput.addEventListener('change', () => {
+            item.amount = amountInput.value === '' ? null : Number(amountInput.value);
+            saveItems();
+          });
+          amountContainer.append(amountInput);
+          rowItems.push(amountContainer);
+        }
 
         const removeButton = document.createElement('button');
         removeButton.className = 'remove-item';
@@ -1442,21 +1459,31 @@
         removeButton.textContent = 'Rimuovi';
         removeButton.setAttribute('aria-label', `Rimuovi ${item.name}`);
         removeButton.addEventListener('click', () => {
-          shoppingItems = shoppingItems.filter((entry) => entry.id !== item.id);
-          saveShoppingItems();
-          renderShoppingItems();
+          removeItem(item.id);
+          saveItems();
+          renderItems();
         });
 
-        row.append(checkbox, textContainer, removeButton);
-        shoppingItemsList.append(row);
+        row.append(...rowItems, removeButton);
+        list.append(row);
       });
 
-      emptyListMessage.hidden = visibleItems.length > 0;
-      if (visibleItems.length === 0 && activeCategory !== 'Tutte') {
-        emptyListMessage.textContent = `Non ci sono ancora voci nella categoria ${activeCategory}.`;
-      } else {
-        emptyListMessage.textContent = 'La lista è vuota: aggiungi la prima voce.';
-      }
+      emptyMessage.hidden = visibleItems.length > 0;
+      emptyMessage.textContent = emptyText;
+    }
+
+    function renderShoppingItems() {
+      const visibleItems = shoppingItems.filter((item) =>
+        activeCategory === 'Tutte' || item.category === activeCategory
+      );
+      const emptyText = activeCategory === 'Tutte'
+        ? 'La lista è vuota: aggiungi la prima voce.'
+        : `Non ci sono ancora voci nella categoria ${activeCategory}.`;
+      renderItemList(
+        shoppingItemsList, shoppingItems, visibleItems, emptyListMessage, emptyText,
+        saveShoppingItems, renderShoppingItems,
+        (id) => { shoppingItems = shoppingItems.filter((item) => item.id !== id); }
+      );
     }
 
     function showShoppingList(category = 'Tutte') {
@@ -1483,65 +1510,14 @@
     }
 
     function renderTripItems() {
-      tripItemsList.replaceChildren();
       const visibleItems = tripItems.filter((item) => item.category === activeTripCategory);
-
-      visibleItems.forEach((item) => {
-        const row = document.createElement('li');
-        row.className = `shopping-item${item.done ? ' done' : ''}`;
-
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = item.done;
-        checkbox.setAttribute('aria-label', `Segna ${item.name} come ${item.done ? 'da completare' : 'completata'}`);
-        checkbox.addEventListener('change', () => {
-          item.done = checkbox.checked;
-          saveTripItems();
-          renderTripItems();
-        });
-
-        const textContainer = document.createElement('span');
-        textContainer.className = 'shopping-item-text';
-        textContainer.append(document.createTextNode(item.name));
-        const category = document.createElement('span');
-        category.className = 'shopping-item-category';
-        category.textContent = item.category;
-        textContainer.append(category);
-
-        const amountContainer = document.createElement('label');
-        amountContainer.className = 'item-amount';
-        amountContainer.append(document.createTextNode('€'));
-        const amountInput = document.createElement('input');
-        amountInput.type = 'number';
-        amountInput.min = '0';
-        amountInput.step = '0.01';
-        amountInput.inputMode = 'decimal';
-        amountInput.placeholder = '0,00';
-        amountInput.value = item.amount === null ? '' : String(item.amount);
-        amountInput.setAttribute('aria-label', `Importo in euro per ${item.name}`);
-        amountInput.addEventListener('change', () => {
-          item.amount = amountInput.value === '' ? null : Number(amountInput.value);
-          saveTripItems();
-        });
-        amountContainer.append(amountInput);
-
-        const removeButton = document.createElement('button');
-        removeButton.className = 'remove-item';
-        removeButton.type = 'button';
-        removeButton.textContent = 'Rimuovi';
-        removeButton.setAttribute('aria-label', `Rimuovi ${item.name}`);
-        removeButton.addEventListener('click', () => {
-          tripItems = tripItems.filter((entry) => entry.id !== item.id);
-          saveTripItems();
-          renderTripItems();
-        });
-
-        row.append(checkbox, textContainer, amountContainer, removeButton);
-        tripItemsList.append(row);
-      });
-
-      tripEmptyListMessage.hidden = visibleItems.length > 0;
-      tripEmptyListMessage.textContent = `La lista ${activeTripCategory.toLowerCase()} è vuota: aggiungi la prima voce.`;
+      renderItemList(
+        tripItemsList, tripItems, visibleItems, tripEmptyListMessage,
+        `La lista ${activeTripCategory.toLowerCase()} è vuota: aggiungi la prima voce.`,
+        saveTripItems, renderTripItems,
+        (id) => { tripItems = tripItems.filter((item) => item.id !== id); },
+        true
+      );
     }
 
     function showTripList(tripId = activeTripId, category = activeTripCategory) {
@@ -1592,26 +1568,26 @@
     });
 
     shoppingCategoryList.addEventListener('click', (event) => {
-      const removeButton = event.target.closest('button[data-remove-shopping-category]');
-      if (removeButton) {
-        const category = removeButton.dataset.removeShoppingCategory;
-        const previousCustom = [...customShoppingCategories];
-        const previousRemoved = [...removedShoppingCategories];
+      const deleteButton = event.target.closest('[data-delete-shopping-category]');
+      if (deleteButton) {
+        const category = deleteButton.dataset.deleteShoppingCategory;
+        const previousCustomCategories = [...customShoppingCategories];
+        const previousRemovedCategories = [...removedShoppingCategories];
+        const previousCategories = [...shoppingCategories];
+        const previousShoppingItems = [...shoppingItems];
+
         customShoppingCategories = customShoppingCategories.filter((item) => item !== category);
         if (baseShoppingCategories.includes(category) && !removedShoppingCategories.includes(category)) {
           removedShoppingCategories.push(category);
         }
         shoppingCategories = shoppingCategories.filter((item) => item !== category);
-        const previousItems = shoppingItems;
         shoppingItems = shoppingItems.filter((item) => item.category !== category);
+
         if (!saveShoppingCategories()) {
-          customShoppingCategories = previousCustom;
-          removedShoppingCategories = previousRemoved;
-          shoppingCategories = [
-            ...baseShoppingCategories.filter((item) => !removedShoppingCategories.includes(item)),
-            ...customShoppingCategories
-          ];
-          shoppingItems = previousItems;
+          customShoppingCategories = previousCustomCategories;
+          removedShoppingCategories = previousRemovedCategories;
+          shoppingCategories = previousCategories;
+          shoppingItems = previousShoppingItems;
           renderShoppingCategories();
           return;
         }
@@ -1621,7 +1597,7 @@
         }
         renderShoppingCategories();
         renderShoppingItems();
-        shoppingCategoryStatus.textContent = `Categoria “${category}” e relative voci rimosse.`;
+        shoppingCategoryStatus.textContent = `Categoria “${category}” e le relative voci sono state eliminate.`;
         return;
       }
 
@@ -1644,18 +1620,18 @@
         return;
       }
 
-      const removedBaseCategory = baseShoppingCategories.find((base) => base.toLowerCase() === category.toLowerCase());
-      if (removedBaseCategory) {
-        removedShoppingCategories = removedShoppingCategories.filter((item) => item !== removedBaseCategory);
-        shoppingCategories.push(removedBaseCategory);
+      const restoredCategory = baseShoppingCategories.find((item) => item.toLowerCase() === category.toLowerCase());
+      if (restoredCategory) {
+        removedShoppingCategories = removedShoppingCategories.filter((item) => item !== restoredCategory);
+        shoppingCategories.push(restoredCategory);
       } else {
         customShoppingCategories.push(category);
         shoppingCategories.push(category);
       }
       if (!saveShoppingCategories()) {
-        if (removedBaseCategory) {
-          removedShoppingCategories.push(removedBaseCategory);
-          shoppingCategories = shoppingCategories.filter((item) => item !== removedBaseCategory);
+        if (restoredCategory) {
+          removedShoppingCategories.push(restoredCategory);
+          shoppingCategories = shoppingCategories.filter((item) => item !== restoredCategory);
         } else {
           customShoppingCategories.pop();
           shoppingCategories.pop();
@@ -1682,17 +1658,21 @@
         row.className = 'wishlist-item';
         const name = document.createElement('span');
         name.textContent = item.name;
-        const removeButton = document.createElement('button');
-        removeButton.className = 'wishlist-remove';
-        removeButton.type = 'button';
-        removeButton.textContent = 'Rimuovi';
-        removeButton.setAttribute('aria-label', `Rimuovi ${item.name} dalla Wishlist`);
-        removeButton.addEventListener('click', () => {
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'submenu-delete';
+        deleteButton.type = 'button';
+        deleteButton.textContent = '×';
+        deleteButton.setAttribute('aria-label', `Elimina ${item.name} dalla Wishlist`);
+        deleteButton.addEventListener('click', () => {
+          const previousItems = wishlistItems;
           wishlistItems = wishlistItems.filter((entry) => entry.id !== item.id);
-          saveWishlistItems();
+          if (!saveWishlistItems()) {
+            wishlistItems = previousItems;
+            return;
+          }
           renderWishlistItems();
         });
-        row.append(name, removeButton);
+        row.append(name, deleteButton);
         wishlistList.append(row);
       });
     }
@@ -1798,13 +1778,13 @@
       yearSummary.append(chevron);
       yearMenu.append(yearSummary);
 
-      const removeButton = document.createElement('button');
-      removeButton.className = 'menu-remove-button';
-      removeButton.type = 'button';
-      removeButton.dataset.removeBillYear = String(year);
-      removeButton.textContent = 'Rimuovi';
-      removeButton.setAttribute('aria-label', `Rimuovi l’anno ${year} e i PDF associati`);
-      yearMenu.append(removeButton);
+      const deleteButton = document.createElement('button');
+      deleteButton.className = 'submenu-delete';
+      deleteButton.type = 'button';
+      deleteButton.dataset.deleteBillYear = String(year);
+      deleteButton.textContent = '×';
+      deleteButton.setAttribute('aria-label', `Elimina l’anno ${year} e i PDF associati`);
+      yearMenu.append(deleteButton);
 
       const monthList = document.createElement('ul');
       monthList.className = 'submenu upload-list';
@@ -1884,9 +1864,9 @@
           return;
         }
 
-        const previouslyRemoved = removedBillYears.includes(year);
-        if (previouslyRemoved) {
-          removedBillYears = removedBillYears.filter((item) => item !== year);
+        const wasRemoved = removedBillYears.includes(year);
+        if (wasRemoved) {
+          removedBillYears = removedBillYears.filter((entry) => entry !== year);
         } else {
           customBillYears.push(year);
         }
@@ -1895,7 +1875,7 @@
           localStorage.setItem(removedBillYearsStorageKey, JSON.stringify(removedBillYears));
         } catch (error) {
           console.error('Impossibile salvare il nuovo anno delle bollette:', error);
-          if (previouslyRemoved) {
+          if (wasRemoved) {
             removedBillYears.push(year);
           } else {
             customBillYears.pop();
@@ -1910,52 +1890,6 @@
     }
 
     renderBillYears();
-
-    billYearsContainer.addEventListener('click', async (event) => {
-      const button = event.target.closest('button[data-remove-bill-year]');
-      if (!button) {
-        return;
-      }
-
-      const year = Number(button.dataset.removeBillYear);
-      const status = document.querySelector('#bill-year-status');
-      button.disabled = true;
-      try {
-        await Promise.all(billMonths.map((month) =>
-          deleteOfflineUpload(`bollette-${year}-${month.toLowerCase()}`)
-        ));
-        billMonths.forEach((month) => {
-          const key = `bollette-${year}-${month.toLowerCase()}`;
-          const objectUrl = objectUrls.get(key);
-          if (objectUrl) {
-            URL.revokeObjectURL(objectUrl);
-            objectUrls.delete(key);
-          }
-        });
-
-        const previousCustomYears = [...customBillYears];
-        const previousRemovedYears = [...removedBillYears];
-        customBillYears = customBillYears.filter((item) => item !== year);
-        if (year >= 2026 && year <= 2030 && !removedBillYears.includes(year)) {
-          removedBillYears.push(year);
-        }
-        try {
-          localStorage.setItem(billYearsStorageKey, JSON.stringify(customBillYears));
-          localStorage.setItem(removedBillYearsStorageKey, JSON.stringify(removedBillYears));
-        } catch (error) {
-          customBillYears = previousCustomYears;
-          removedBillYears = previousRemovedYears;
-          console.error('Impossibile salvare la rimozione dell’anno:', error);
-          status.textContent = 'I PDF sono stati rimossi, ma non è stato possibile aggiornare l’elenco degli anni.';
-          return;
-        }
-        renderBillYears();
-        billYearsContainer.querySelectorAll('.upload-item input[type="file"]').forEach(setupOfflineFileInput);
-      } catch (error) {
-        console.error(`Impossibile rimuovere i file dell’anno ${year}:`, error);
-        status.textContent = `Impossibile eliminare tutti i PDF dell’anno ${year}. L’anno resta nel menu. ${error.message}`;
-      }
-    });
 
     const uploadDatabaseName = 'casa-offline-files';
     const uploadObjectStoreName = 'uploads';
@@ -2020,6 +1954,53 @@
         transaction.onabort = () => reject(transaction.error || new Error('Rimozione del file offline annullata.'));
       });
     }
+
+    billYearsContainer.addEventListener('click', async (event) => {
+      const deleteButton = event.target.closest('[data-delete-bill-year]');
+      if (!deleteButton) {
+        return;
+      }
+
+      const year = Number(deleteButton.dataset.deleteBillYear);
+      const status = document.querySelector('#bill-year-status');
+      deleteButton.disabled = true;
+      try {
+        await Promise.all(billMonths.map((month) =>
+          deleteOfflineUpload(`bollette-${year}-${month.toLowerCase()}`)
+        ));
+        billMonths.forEach((month) => {
+          const key = `bollette-${year}-${month.toLowerCase()}`;
+          const objectUrl = objectUrls.get(key);
+          if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+            objectUrls.delete(key);
+          }
+        });
+
+        const previousCustomYears = [...customBillYears];
+        const previousRemovedYears = [...removedBillYears];
+        customBillYears = customBillYears.filter((entry) => entry !== year);
+        if (year >= 2026 && year <= 2030 && !removedBillYears.includes(year)) {
+          removedBillYears.push(year);
+        }
+        try {
+          localStorage.setItem(billYearsStorageKey, JSON.stringify(customBillYears));
+          localStorage.setItem(removedBillYearsStorageKey, JSON.stringify(removedBillYears));
+        } catch (error) {
+          customBillYears = previousCustomYears;
+          removedBillYears = previousRemovedYears;
+          console.error('Impossibile salvare la rimozione dell’anno:', error);
+          status.textContent = 'I PDF sono stati eliminati, ma non è stato possibile aggiornare l’elenco degli anni.';
+          return;
+        }
+        renderBillYears();
+        billYearsContainer.querySelectorAll('.upload-item input[type="file"]').forEach(setupOfflineFileInput);
+      } catch (error) {
+        console.error(`Impossibile eliminare i PDF dell’anno ${year}:`, error);
+        status.textContent = `Impossibile eliminare i file dell’anno ${year}. L’anno resta nel menu. ${error.message}`;
+        deleteButton.disabled = false;
+      }
+    });
 
     function showOfflineUpload(input, fileRecord) {
       const status = input.closest('.upload-item').querySelector('.file-name');
@@ -2134,13 +2115,16 @@
       uploadItem.append(label, fileName);
       uploads.append(uploadItem);
       menu.append(uploads);
-      const removeButton = document.createElement('button');
-      removeButton.className = 'menu-remove-button';
-      removeButton.type = 'button';
-      removeButton.dataset.removeTrip = trip.id;
-      removeButton.textContent = 'Rimuovi';
-      removeButton.setAttribute('aria-label', `Rimuovi ${trip.name} e i dati associati`);
-      menu.append(removeButton);
+      const deleteRow = document.createElement('div');
+      deleteRow.className = 'trip-menu-delete-row';
+      const deleteButton = document.createElement('button');
+      deleteButton.className = 'submenu-delete';
+      deleteButton.type = 'button';
+      deleteButton.dataset.deleteTrip = trip.id;
+      deleteButton.textContent = '×';
+      deleteButton.setAttribute('aria-label', `Elimina ${trip.name} e i dati associati`);
+      deleteRow.append(deleteButton);
+      menu.append(deleteRow);
       tripMenusContainer.append(menu);
       setupOfflineFileInput(input);
       return menu;
@@ -2184,19 +2168,19 @@
     });
 
     tripMenusContainer.addEventListener('click', async (event) => {
-      const button = event.target.closest('button[data-remove-trip]');
-      if (!button) {
+      const deleteButton = event.target.closest('[data-delete-trip]');
+      if (!deleteButton) {
         return;
       }
 
-      const tripId = button.dataset.removeTrip;
+      const tripId = deleteButton.dataset.deleteTrip;
       const trip = trips.find((item) => item.id === tripId);
       if (!trip) {
         tripAddStatus.textContent = 'La destinazione selezionata non è disponibile.';
         return;
       }
 
-      button.disabled = true;
+      deleteButton.disabled = true;
       const uploadKey = tripId === 'thailandia' ? 'thailandia-programmazione' : `trip-${tripId}-programmazione`;
       try {
         await deleteOfflineUpload(uploadKey);
@@ -2213,22 +2197,23 @@
           removedTrips.push(tripId);
         }
         try {
-          localStorage.removeItem(tripListStorageKey(tripId));
           localStorage.setItem(
             tripsStorageKey,
             JSON.stringify(trips.filter((item) => !baseTrips.some((base) => base.id === item.id)))
           );
           localStorage.setItem(removedTripsStorageKey, JSON.stringify(removedTrips));
+          localStorage.removeItem(tripListStorageKey(tripId));
         } catch (error) {
           trips = previousTrips;
           removedTrips = previousRemovedTrips;
-          console.error('Impossibile salvare la rimozione della destinazione:', error);
+          console.error('Impossibile salvare l’eliminazione del viaggio:', error);
           tripAddStatus.textContent = 'Il file di programmazione è stato eliminato, ma non è stato possibile aggiornare l’elenco dei viaggi.';
+          deleteButton.disabled = false;
           return;
         }
 
-        button.closest('.trip-menu').remove();
-        tripAddStatus.textContent = `${trip.name} e i dati associati sono stati rimossi.`;
+        deleteButton.closest('.trip-menu').remove();
+        tripAddStatus.textContent = `${trip.name} e i dati associati sono stati eliminati.`;
         if (activeTripId === tripId) {
           welcomePanel.hidden = false;
           shoppingPanel.hidden = true;
@@ -2237,9 +2222,9 @@
           activeTripCategory = 'Spese';
         }
       } catch (error) {
-        console.error(`Impossibile rimuovere i dati del viaggio ${trip.name}:`, error);
-        tripAddStatus.textContent = `Impossibile eliminare i file di ${trip.name}. La destinazione resta nel menu. ${error.message}`;
-        button.disabled = false;
+        console.error(`Impossibile eliminare i file di ${trip.name}:`, error);
+        tripAddStatus.textContent = `Impossibile eliminare i dati di ${trip.name}. La destinazione resta nel menu. ${error.message}`;
+        deleteButton.disabled = false;
       }
     });
 
@@ -2331,8 +2316,4 @@
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./service-worker.js')
           .catch((error) => console.error('Impossibile attivare il supporto offline di CASA:', error));
-      });
-    }
-  </script>
-</body>
-</html>
+      }
