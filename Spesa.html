@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#111713">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>CASA</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./casa.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./casa.svg">
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: #26352d;
+      background: #f5f6f2;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    .page {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      padding: 44px 20px;
+      position: relative;
+      z-index: 1;
+      background: linear-gradient(180deg, #fff 0%, #fbfcfa 100%);
+      border-right: 1px solid #e5e9e3;
+      box-shadow: 8px 0 28px rgb(38 53 45 / 5%);
+    }
+
+    .brand {
+      display: block;
+      width: 100%;
+      margin: 0 0 32px;
+      padding: 18px 20px;
+      border: 1px solid #e4ebe3;
+      border-radius: 16px;
+      color: #315b45;
+      background: linear-gradient(135deg, #fff 0%, #f0f6ef 100%);
+      box-shadow: 0 8px 20px rgb(38 53 45 / 8%);
+      font-family: inherit;
+      font-size: 1.7rem;
+      font-weight: 750;
+      letter-spacing: 0.2em;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    .brand:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 11px 24px rgb(38 53 45 / 12%);
+    }
+
+    .brand:focus-visible {
+      outline: 2px solid #58816a;
+      outline-offset: 3px;
+    }
+
+    .menu {
+      display: grid;
+      gap: 10px;
+    }
+
+    details {
+      overflow: hidden;
+      border: 1px solid #edf0ec;
+      border-radius: 13px;
+      background: #fff;
+      box-shadow: 0 3px 10px rgb(38 53 45 / 4%);
+      transition: box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease;
+    }
+
+    .menu > details:hover {
+      transform: translateY(-1px);
+      border-color: #dce6dc;
+      box-shadow: 0 7px 18px rgb(38 53 45 / 8%);
+    }
+
+    details[open] {
+      border-color: #dce6dc;
+      background: #f9fbf8;
+      box-shadow: 0 8px 20px rgb(38 53 45 / 7%);
+    }
+
+    summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 52px;
+      padding: 0 14px;
+      color: #35483c;
+      font-size: 0.98rem;
+      font-weight: 550;
+      list-style: none;
+      cursor: pointer;
+      transition: background-color 150ms ease, color 150ms ease;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    summary:hover,
+    details[open] summary {
+      color: #315b45;
+      background: #edf3ed;
+    }
+
+    summary:focus-visible {
+      outline: 2px solid #58816a;
+      outline-offset: -2px;
+    }
+
+    .chevron {
+      width: 8px;
+      height: 8px;
+      margin-right: 3px;
+      border-right: 1.5px solid currentColor;
+      border-bottom: 1.5px solid currentColor;
+      transform: rotate(45deg) translateY(-2px);
+      transition: transform 150ms ease;
+    }
+
+    details[open] .chevron {
+      transform: rotate(225deg) translate(-1px, -1px);
+    }
+
+    .submenu {
+      margin: 0;
+      padding: 10px 14px 16px;
+      color: #78857b;
+      background: #fff;
+      border: 1px solid #edf0ec;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgb(38 53 45 / 6%);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .upload-list {
+      display: grid;
+      gap: 8px;
+      padding-left: 0;
+      list-style: none;
+    }
+
+    .category-list {
+      display: grid;
+      gap: 4px;
+      padding-left: 0;
+      list-style: none;
+    }
+
+    .category-button {
+      width: 100%;
+      padding: 7px 8px;
+      border: 0;
+      border-radius: 7px;
+      color: #526257;
+      background: transparent;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .category-button:hover,
+    .category-button[aria-pressed="true"] {
+      color: #315b45;
+      background: #e7efe7;
+    }
+
+    .upload-item {
+      display: grid;
+      gap: 3px;
+    }
+
+    .upload-item label {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 34px;
+      padding: 5px 8px;
+      border-radius: 7px;
+      color: #526257;
+      cursor: pointer;
+    }
+
+    .upload-item label:hover {
+      background: #e7efe7;
+      color: #315b45;
+    }
+
+    .upload-item label:focus-within {
+      outline: 2px solid #58816a;
+    }
+
+    .upload-item input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      clip-path: inset(50%);
+    }
+
+    .upload-action {
+      flex: 0 0 auto;
+      color: #315b45;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .file-name {
+      overflow-wrap: anywhere;
+      padding: 0 8px 5px;
+      color: #78857b;
+      font-size: 0.75rem;
+    }
+
+    .trip-menu {
+      margin: 0 8px 10px 12px;
+      padding-left: 14px;
+      border-left: 1px solid #dce6dc;
+    }
+
+    .year-menu {
+      margin: 0 8px 10px 12px;
+      padding-left: 14px;
+      border-left: 1px solid #dce6dc;
+    }
+
+    .trip-menu summary,
+    .year-menu summary {
+      min-height: 40px;
+      padding: 0 8px;
+      font-size: 0.9rem;
+    }
+
+    .trip-menu .submenu,
+    .year-menu .submenu {
+      padding: 8px 8px 10px;
+    }
+
+    main {
+      display: grid;
+      place-items: center;
+      padding: 48px;
+    }
+
+    .welcome {
+      max-width: 430px;
+      text-align: center;
+    }
+
+    .welcome-mark {
+      display: grid;
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 22px;
+      place-items: center;
+      border-radius: 20px;
+      color: #315b45;
+      background: #e7efe7;
+      font-size: 1.7rem;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      color: #26352d;
+      font-size: clamp(1.7rem, 3vw, 2.2rem);
+      font-weight: 650;
+      letter-spacing: -0.04em;
+    }
+
+    .welcome p {
+      margin: 0;
+      color: #78857b;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .shopping-panel {
+      width: min(100%, 680px);
+      align-self: start;
+      padding: 32px;
+      border: 1px solid #e5e9e3;
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 12px 32px rgb(38 53 45 / 5%);
+    }
+
+    .shopping-panel[hidden],
+    .welcome[hidden] {
+      display: none;
+    }
+
+    .shopping-panel h1 {
+      margin-bottom: 6px;
+    }
+
+    .shopping-description {
+      margin: 0 0 24px;
+      color: #78857b;
+      line-height: 1.5;
+    }
+
+    .shopping-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 110px 130px auto;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .shopping-form input,
+    .shopping-form select,
+    .shopping-form button {
+      min-height: 44px;
+      padding: 0 12px;
+      border: 1px solid #dce4dc;
+      border-radius: 9px;
+      font: inherit;
+    }
+
+    .currency-field {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+      padding: 0 10px;
+      border: 1px solid #dce4dc;
+      border-radius: 9px;
+      color: #78857b;
+      font-size: 0.9rem;
+    }
+
+    .currency-field:focus-within {
+      outline: 2px solid #58816a;
+      outline-offset: 1px;
+    }
+
+    .currency-field input {
+      width: 100%;
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      outline: 0;
+    }
+
+    .shopping-form input:focus,
+    .shopping-form select:focus {
+      outline: 2px solid #58816a;
+      outline-offset: 1px;
+    }
+
+    .shopping-form button {
+      border-color: #315b45;
+      color: #fff;
+      background: #315b45;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .shopping-form button:hover {
+      background: #264a37;
+    }
+
+    .shopping-items {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .shopping-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 52px;
+      padding: 8px 12px;
+      border: 1px solid #edf0ec;
+      border-radius: 10px;
+    }
+
+    .shopping-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #315b45;
+    }
+
+    .shopping-item-text {
+      flex: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .item-amount {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex: 0 0 120px;
+      color: #526257;
+      font-size: 0.9rem;
+    }
+
+    .item-amount input {
+      width: 100%;
+      min-width: 0;
+      min-height: 36px;
+      padding: 0 8px;
+      border: 1px solid #dce4dc;
+      border-radius: 7px;
+      font: inherit;
+      text-align: right;
+    }
+
+    .item-amount input:focus {
+      outline: 2px solid #58816a;
+      outline-offset: 1px;
+    }
+
+    .shopping-item-category {
+      display: block;
+      margin-top: 2px;
+      color: #78857b;
+      font-size: 0.78rem;
+    }
+
+    .shopping-item.done .shopping-item-text {
+      color: #8a958c;
+      text-decoration: line-through;
+    }
+
+    .remove-item {
+      padding: 6px 8px;
+      border: 0;
+      border-radius: 7px;
+      color: #7b5149;
+      background: transparent;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .remove-item:hover {
+      background: #f8eeeb;
+    }
+
+    .empty-list,
+    .storage-status {
+      color: #78857b;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .storage-status {
+      min-height: 1.4em;
+      margin: 14px 0 0;
+    }
+
+    :root {
+      color-scheme: dark;
+      color: #e5eee7;
+      background: #111713;
+    }
+
+    body {
+      background: #111713;
+    }
+
+    .sidebar {
+      background: linear-gradient(180deg, #1b241e 0%, #171f1a 100%);
+      border-color: #2b372e;
+      box-shadow: 8px 0 28px rgb(0 0 0 / 24%);
+    }
+
+    .brand {
+      color: #c5e2ca;
+      background: linear-gradient(135deg, #6d9c7b 0%, #1e2b22 100%);
+      border-color: #3b5140;
+      box-shadow: 0 8px 20px rgb(0 0 0 / 22%);
+    }
+
+    .brand:hover {
+      box-shadow: 0 11px 24px rgb(0 0 0 / 32%);
+    }
+
+    details {
+      border-color: #303d33;
+      background: #519465;
+      box-shadow: 0 3px 10px rgb(0 0 0 / 18%);
+    }
+
+    .menu > details:hover {
+      border-color: #465b49;
+      box-shadow: 0 7px 18px rgb(0 0 0 / 28%);
+    }
+
+    details[open] {
+      border-color: #405544;
+      background: #1c271f;
+      box-shadow: 0 8px 20px rgb(0 0 0 / 24%);
+    }
+
+    .trip-menu,
+    .trip-menu[open],
+    .year-menu,
+    .year-menu[open] {
+      border: 0;
+      border-left: 1px solid #405544;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    summary {
+      color: #d5e0d7;
+    }
+
+    summary:hover,
+    details[open] summary {
+      color: #c5e2ca;
+      background: #29392d;
+    }
+
+    summary:focus-visible,
+    .brand:focus-visible,
+    .upload-item label:focus-within {
+      outline-color: #9bc6a2;
+    }
+
+    .submenu {
+      color: #a7b5aa;
+      background: #519465;
+      border-color: #198633;
+      box-shadow: 0 4px 12px rgb(0 0 0 / 22%);
+    }
+
+    .category-button,
+    .upload-item label {
+      color: #c0cdc3;
+    }
+
+    .category-button:hover,
+    .category-button[aria-pressed="true"],
+    .upload-item label:hover {
+      color: #d4ead7;
+      background: #2b3c30;
+    }
+
+    .upload-action {
+      color: #a9d2b0;
+    }
+
+    .file-name,
+    .welcome p,
+    .shopping-description,
+    .shopping-item-category,
+    .empty-list,
+    .storage-status {
+      color: #a2afa5;
+    }
+
+    .trip-menu,
+    .year-menu {
+      border-left-color: #405544;
+    }
+
+    .welcome-mark {
+      color: #c5e2ca;
+      background: #293b2e;
+    }
+
+    h1 {
+      color: #e5eee7;
+    }
+
+    .shopping-panel {
+      border-color: #303d33;
+      background: #1b241e;
+      box-shadow: 0 12px 32px rgb(0 0 0 / 24%);
+    }
+
+    .shopping-form input,
+    .shopping-form select,
+    .shopping-form button,
+    .currency-field {
+      border-color: #3a4a3d;
+      color: #e1e9e2;
+      background-color: #202b23;
+    }
+
+    .shopping-form input::placeholder,
+    .currency-field input::placeholder {
+      color: #89998d;
+    }
+
+    .shopping-form button {
+      border-color: #52785b;
+      color: #f1f7f2;
+      background: #42654a;
+    }
+
+    .shopping-form button:hover {
+      background: #527a5b;
+    }
+
+    .shopping-item {
+      border-color: #303d33;
+      background: #202a23;
+    }
+
+    .shopping-item input[type="checkbox"] {
+      accent-color: #8fb997;
+    }
+
+    .item-amount {
+      color: #c0cdc3;
+    }
+
+    .item-amount input {
+      border-color: #3a4a3d;
+      color: #e1e9e2;
+      background: #19221c;
+    }
+
+    .shopping-item.done .shopping-item-text {
+      color: #829087;
+    }
+
+    .remove-item {
+      color: #e1a69a;
+    }
+
+    .remove-item:hover {
+      background: #402c29;
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+
+      .sidebar {
+        padding: 26px 18px 18px;
+        border-right: 0;
+        border-bottom: 1px solid #e5e9e3;
+      }
+
+      .brand {
+        margin: 0 0 20px;
+      }
+
+      main {
+        min-height: 280px;
+        padding: 36px 22px;
+      }
+
+      .shopping-panel {
+        padding: 22px 18px;
+      }
+
+      .shopping-form {
+        grid-template-columns: 1fr;
+      }
+
+      .item-amount {
+        flex-basis: 96px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="sidebar" aria-label="Menu principale">
+      <button class="brand" id="home-button" type="button" aria-label="Torna alla homepage">CASA</button>
+      <nav class="menu" aria-label="Sezioni">
+        <details data-section="shopping">
+          <summary>Lista spesa <span class="chevron" aria-hidden="true"></span></summary>
+          <ul class="submenu category-list" aria-label="Filtra per categoria">
+            <li><button class="category-button" type="button" data-category="Tutte" aria-pressed="true">Tutte le voci</button></li>
+            <li><button class="category-button" type="button" data-category="Cibo" aria-pressed="false">Cibo</button></li>
+            <li><button class="category-button" type="button" data-category="Bevande" aria-pressed="false">Bevande</button></li>
+            <li><button class="category-button" type="button" data-category="Materiale" aria-pressed="false">Materiale</button></li>
+          </ul>
+        </details>
+        <details>
+          <summary>Bollette <span class="chevron" aria-hidden="true"></span></summary>
+          <div class="submenu" id="bill-years" aria-label="Bollette per anno"></div>
+        </details>
+        <details>
+          <summary>Viaggi <span class="chevron" aria-hidden="true"></span></summary>
+          <details class="trip-menu">
+            <summary>Thailandia <span class="chevron" aria-hidden="true"></span></summary>
+            <ul class="submenu category-list" aria-label="Filtra le voci Thailandia">
+              <li><button class="category-button trip-category-button" type="button" data-trip-category="Spese" aria-pressed="true">Spese</button></li>
+              <li><button class="category-button trip-category-button" type="button" data-trip-category="Hotel" aria-pressed="false">Hotel</button></li>
+            </ul>
+            <ul class="submenu upload-list">
+              <li class="upload-item">
+                <label><span>Programmazione</span><span class="upload-action">Carica file</span><input type="file" data-offline-file-key="thailandia-programmazione" aria-label="Carica un file per la programmazione della Thailandia"></label>
+                <span class="file-name" aria-live="polite"></span>
+              </li>
+            </ul>
+          </details>
+        </details>
+        <details>
+          <summary>Wishlist <span class="chevron" aria-hidden="true"></span></summary>
+          <p class="submenu">Nessun elemento ancora.</p>
+        </details>
+      </nav>
+    </aside>
+    <main>
+      <section class="welcome" aria-label="Benvenuto">
+        <div class="welcome-mark" aria-hidden="true">⌂</div>
+        <h1>La tua casa, in ordine.</h1>
+        <p>Scegli una sezione dal menu per iniziare.</p>
+      </section>
+      <section class="shopping-panel" aria-labelledby="shopping-title" hidden>
+        <h1 id="shopping-title">Lista spesa</h1>
+        <p class="shopping-description">Aggiungi le voci che ti servono e organizzale per categoria.</p>
+        <form class="shopping-form" id="shopping-form">
+          <input id="item-name" name="item" type="text" maxlength="120" placeholder="Es. Pasta" aria-label="Nome della voce" required>
+          <select id="item-category" name="category" aria-label="Categoria">
+            <option value="Cibo">Cibo</option>
+            <option value="Bevande">Bevande</option>
+            <option value="Materiale">Materiale</option>
+          </select>
+          <button type="submit">Aggiungi</button>
+        </form>
+        <ul class="shopping-items" id="shopping-items" aria-live="polite"></ul>
+        <p class="empty-list" id="empty-list">La lista è vuota: aggiungi la prima voce.</p>
+        <p class="storage-status" id="storage-status" role="status"></p>
+      </section>
+      <section class="shopping-panel" aria-labelledby="trip-title" hidden>
+        <h1 id="trip-title">Thailandia</h1>
+        <p class="shopping-description">Aggiungi e organizza le voci di spese e hotel.</p>
+        <form class="shopping-form" id="trip-form">
+          <input id="trip-item-name" name="item" type="text" maxlength="120" placeholder="Es. Trasferimento aeroporto" aria-label="Nome della voce Thailandia" required>
+          <select id="trip-item-category" name="category" aria-label="Categoria Thailandia">
+            <option value="Spese">Spese</option>
+            <option value="Hotel">Hotel</option>
+          </select>
+          <label class="currency-field">
+            <span>€</span>
+            <input id="trip-item-amount" name="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" aria-label="Importo in euro">
+          </label>
+          <button type="submit">Aggiungi</button>
+        </form>
+        <ul class="shopping-items" id="trip-items" aria-live="polite"></ul>
+        <p class="empty-list" id="trip-empty-list">La lista è vuota: aggiungi la prima voce.</p>
+        <p class="storage-status" id="trip-storage-status" role="status"></p>
+      </section>
+    </main>
+  </div>
+  <script>
+    const storageKey = 'casa-shopping-list';
+    const shoppingPanel = document.querySelector('.shopping-panel');
+    const welcomePanel = document.querySelector('.welcome');
+    const shoppingForm = document.querySelector('#shopping-form');
+    const itemNameInput = document.querySelector('#item-name');
+    const itemCategoryInput = document.querySelector('#item-category');
+    const shoppingItemsList = document.querySelector('#shopping-items');
+    const emptyListMessage = document.querySelector('#empty-list');
+    const storageStatus = document.querySelector('#storage-status');
+    const categoryButtons = document.querySelectorAll('.category-button');
+    const tripPanel = document.querySelector('#trip-form').closest('.shopping-panel');
+    const tripForm = document.querySelector('#trip-form');
+    const tripItemNameInput = document.querySelector('#trip-item-name');
+    const tripItemCategoryInput = document.querySelector('#trip-item-category');
+    const tripItemAmountInput = document.querySelector('#trip-item-amount');
+    const tripItemsList = document.querySelector('#trip-items');
+    const tripEmptyListMessage = document.querySelector('#trip-empty-list');
+    const tripStorageStatus = document.querySelector('#trip-storage-status');
+    const tripCategoryButtons = document.querySelectorAll('.trip-category-button');
+    const tripStorageKey = 'casa-thailand-shopping-list';
+    let activeCategory = 'Tutte';
+    let activeTripCategory = 'Spese';
+    let shoppingItems = [];
+    let tripItems = [];
+
+    try {
+      const savedItems = localStorage.getItem(storageKey);
+      if (savedItems) {
+        const parsedItems = JSON.parse(savedItems);
+        if (Array.isArray(parsedItems)) {
+          shoppingItems = parsedItems.filter((item) =>
+            item &&
+            typeof item.id === 'string' &&
+            typeof item.name === 'string' &&
+            ['Cibo', 'Bevande', 'Materiale'].includes(item.category) &&
+            typeof item.done === 'boolean'
+          );
+        }
+      }
+    } catch {
+      storageStatus.textContent = 'Impossibile leggere la lista salvata nel browser.';
+    }
+
+    try {
+      const savedTripItems = localStorage.getItem(tripStorageKey);
+      if (savedTripItems) {
+        const parsedTripItems = JSON.parse(savedTripItems);
+        if (Array.isArray(parsedTripItems)) {
+          tripItems = parsedTripItems.filter((item) =>
+            item &&
+            typeof item.id === 'string' &&
+            typeof item.name === 'string' &&
+            ['Spese', 'Hotel'].includes(item.category) &&
+            typeof item.done === 'boolean' &&
+            (item.amount === undefined || item.amount === null || (typeof item.amount === 'number' && Number.isFinite(item.amount) && item.amount >= 0))
+          );
+          tripItems.forEach((item) => {
+            item.amount = typeof item.amount === 'number' ? item.amount : null;
+          });
+        }
+      }
+    } catch {
+      tripStorageStatus.textContent = 'Impossibile leggere la lista Thailandia salvata nel browser.';
+    }
+
+    function saveShoppingItems() {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(shoppingItems));
+        storageStatus.textContent = '';
+      } catch {
+        storageStatus.textContent = 'Impossibile salvare la lista nel browser. Le modifiche resteranno disponibili finché la pagina è aperta.';
+      }
+    }
+
+    function renderShoppingItems() {
+      shoppingItemsList.replaceChildren();
+      const visibleItems = shoppingItems.filter((item) =>
+        activeCategory === 'Tutte' || item.category === activeCategory
+      );
+
+      visibleItems.forEach((item) => {
+        const row = document.createElement('li');
+        row.className = `shopping-item${item.done ? ' done' : ''}`;
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = item.done;
+        checkbox.setAttribute('aria-label', `Segna ${item.name} come ${item.done ? 'da completare' : 'completata'}`);
+        checkbox.addEventListener('change', () => {
+          item.done = checkbox.checked;
+          saveShoppingItems();
+          renderShoppingItems();
+        });
+
+        const textContainer = document.createElement('span');
+        textContainer.className = 'shopping-item-text';
+        textContainer.append(document.createTextNode(item.name));
+        const category = document.createElement('span');
+        category.className = 'shopping-item-category';
+        category.textContent = item.category;
+        textContainer.append(category);
+
+        const removeButton = document.createElement('button');
+        removeButton.className = 'remove-item';
+        removeButton.type = 'button';
+        removeButton.textContent = 'Rimuovi';
+        removeButton.setAttribute('aria-label', `Rimuovi ${item.name}`);
+        removeButton.addEventListener('click', () => {
+          shoppingItems = shoppingItems.filter((entry) => entry.id !== item.id);
+          saveShoppingItems();
+          renderShoppingItems();
+        });
+
+        row.append(checkbox, textContainer, removeButton);
+        shoppingItemsList.append(row);
+      });
+
+      emptyListMessage.hidden = visibleItems.length > 0;
+      if (visibleItems.length === 0 && activeCategory !== 'Tutte') {
+        emptyListMessage.textContent = `Non ci sono ancora voci nella categoria ${activeCategory}.`;
+      } else {
+        emptyListMessage.textContent = 'La lista è vuota: aggiungi la prima voce.';
+      }
+    }
+
+    function showShoppingList(category = 'Tutte') {
+      activeCategory = category;
+      welcomePanel.hidden = true;
+      shoppingPanel.hidden = false;
+      tripPanel.hidden = true;
+      categoryButtons.forEach((button) => {
+        button.setAttribute('aria-pressed', String(button.dataset.category === activeCategory));
+      });
+      renderShoppingItems();
+    }
+
+    function saveTripItems() {
+      try {
+        localStorage.setItem(tripStorageKey, JSON.stringify(tripItems));
+        tripStorageStatus.textContent = '';
+      } catch {
+        tripStorageStatus.textContent = 'Impossibile salvare la lista Thailandia nel browser. Le modifiche resteranno disponibili finché la pagina è aperta.';
+      }
+    }
+
+    function renderTripItems() {
+      tripItemsList.replaceChildren();
+      const visibleItems = tripItems.filter((item) => item.category === activeTripCategory);
+
+      visibleItems.forEach((item) => {
+        const row = document.createElement('li');
+        row.className = `shopping-item${item.done ? ' done' : ''}`;
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = item.done;
+        checkbox.setAttribute('aria-label', `Segna ${item.name} come ${item.done ? 'da completare' : 'completata'}`);
+        checkbox.addEventListener('change', () => {
+          item.done = checkbox.checked;
+          saveTripItems();
+          renderTripItems();
+        });
+
+        const textContainer = document.createElement('span');
+        textContainer.className = 'shopping-item-text';
+        textContainer.append(document.createTextNode(item.name));
+        const category = document.createElement('span');
+        category.className = 'shopping-item-category';
+        category.textContent = item.category;
+        textContainer.append(category);
+
+        const amountContainer = document.createElement('label');
+        amountContainer.className = 'item-amount';
+        amountContainer.append(document.createTextNode('€'));
+        const amountInput = document.createElement('input');
+        amountInput.type = 'number';
+        amountInput.min = '0';
+        amountInput.step = '0.01';
+        amountInput.inputMode = 'decimal';
+        amountInput.placeholder = '0,00';
+        amountInput.value = item.amount === null ? '' : String(item.amount);
+        amountInput.setAttribute('aria-label', `Importo in euro per ${item.name}`);
+        amountInput.addEventListener('change', () => {
+          item.amount = amountInput.value === '' ? null : Number(amountInput.value);
+          saveTripItems();
+        });
+        amountContainer.append(amountInput);
+
+        const removeButton = document.createElement('button');
+        removeButton.className = 'remove-item';
+        removeButton.type = 'button';
+        removeButton.textContent = 'Rimuovi';
+        removeButton.setAttribute('aria-label', `Rimuovi ${item.name}`);
+        removeButton.addEventListener('click', () => {
+          tripItems = tripItems.filter((entry) => entry.id !== item.id);
+          saveTripItems();
+          renderTripItems();
+        });
+
+        row.append(checkbox, textContainer, amountContainer, removeButton);
+        tripItemsList.append(row);
+      });
+
+      tripEmptyListMessage.hidden = visibleItems.length > 0;
+      tripEmptyListMessage.textContent = `La lista ${activeTripCategory.toLowerCase()} è vuota: aggiungi la prima voce.`;
+    }
+
+    function showTripList(category = activeTripCategory) {
+      activeTripCategory = category;
+      tripItemCategoryInput.value = category;
+      welcomePanel.hidden = true;
+      shoppingPanel.hidden = true;
+      tripPanel.hidden = false;
+      tripCategoryButtons.forEach((button) => {
+        button.setAttribute('aria-pressed', String(button.dataset.tripCategory === activeTripCategory));
+      });
+      renderTripItems();
+    }
+
+    document.querySelector('[data-section="shopping"] > summary').addEventListener('click', () => {
+      showShoppingList();
+    });
+
+    document.querySelector('#home-button').addEventListener('click', () => {
+      welcomePanel.hidden = false;
+      shoppingPanel.hidden = true;
+      tripPanel.hidden = true;
+      document.querySelectorAll('.menu details').forEach((menuSection) => {
+        menuSection.open = false;
+      });
+      activeCategory = 'Tutte';
+      activeTripCategory = 'Spese';
+      categoryButtons.forEach((button) => {
+        button.setAttribute('aria-pressed', String(button.dataset.category === 'Tutte'));
+      });
+      tripCategoryButtons.forEach((button) => {
+        button.setAttribute('aria-pressed', String(button.dataset.tripCategory === 'Spese'));
+      });
+    });
+
+    document.querySelector('.trip-menu > summary').addEventListener('click', () => {
+      showTripList();
+    });
+
+    categoryButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        showShoppingList(button.dataset.category);
+      });
+    });
+
+    tripCategoryButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        showTripList(button.dataset.tripCategory);
+      });
+    });
+
+    shoppingForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const name = itemNameInput.value.trim();
+      if (!name) {
+        itemNameInput.focus();
+        return;
+      }
+
+      shoppingItems.push({
+        id: crypto.randomUUID(),
+        name,
+        category: itemCategoryInput.value,
+        done: false
+      });
+      saveShoppingItems();
+      itemNameInput.value = '';
+      showShoppingList(activeCategory);
+      itemNameInput.focus();
+    });
+
+    tripForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const name = tripItemNameInput.value.trim();
+      if (!name) {
+        tripItemNameInput.focus();
+        return;
+      }
+
+      tripItems.push({
+        id: crypto.randomUUID(),
+        name,
+        category: tripItemCategoryInput.value,
+        amount: tripItemAmountInput.value === '' ? null : Number(tripItemAmountInput.value),
+        done: false
+      });
+      saveTripItems();
+      tripItemNameInput.value = '';
+      tripItemAmountInput.value = '';
+      showTripList(activeTripCategory);
+      tripItemNameInput.focus();
+    });
+
+    renderShoppingItems();
+    renderTripItems();
+
+    const billYearsContainer = document.querySelector('#bill-years');
+    const billMonths = [
+      'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+      'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+    ];
+
+    for (let year = 2026; year <= 2030; year += 1) {
+      const yearMenu = document.createElement('details');
+      yearMenu.className = 'year-menu';
+      yearMenu.open = year === 2026;
+
+      const yearSummary = document.createElement('summary');
+      yearSummary.append(document.createTextNode(String(year)));
+      const chevron = document.createElement('span');
+      chevron.className = 'chevron';
+      chevron.setAttribute('aria-hidden', 'true');
+      yearSummary.append(chevron);
+      yearMenu.append(yearSummary);
+
+      const monthList = document.createElement('ul');
+      monthList.className = 'submenu upload-list';
+      monthList.setAttribute('aria-label', `Bollette ${year}`);
+
+      billMonths.forEach((month) => {
+        const item = document.createElement('li');
+        item.className = 'upload-item';
+
+        const label = document.createElement('label');
+        const monthName = document.createElement('span');
+        monthName.textContent = month;
+        const action = document.createElement('span');
+        action.className = 'upload-action';
+        action.textContent = 'Carica PDF';
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'application/pdf,.pdf';
+        fileInput.dataset.offlineFileKey = `bollette-${year}-${month.toLowerCase()}`;
+        fileInput.setAttribute('aria-label', `Carica PDF per ${month} ${year}`);
+        label.append(monthName, action, fileInput);
+
+        const fileName = document.createElement('span');
+        fileName.className = 'file-name';
+        fileName.setAttribute('aria-live', 'polite');
+        item.append(label, fileName);
+        monthList.append(item);
+      });
+
+      yearMenu.append(monthList);
+      billYearsContainer.append(yearMenu);
+    }
+
+    const uploadDatabaseName = 'casa-offline-files';
+    const uploadObjectStoreName = 'uploads';
+    const objectUrls = new Map();
+    let uploadDatabasePromise;
+
+    function openUploadDatabase() {
+      if (!('indexedDB' in window)) {
+        return Promise.reject(new Error('Questo browser non supporta la conservazione dei file offline.'));
+      }
+
+      if (!uploadDatabasePromise) {
+        uploadDatabasePromise = new Promise((resolve, reject) => {
+          const request = indexedDB.open(uploadDatabaseName, 1);
+          request.onupgradeneeded = () => {
+            request.result.createObjectStore(uploadObjectStoreName, { keyPath: 'key' });
+          };
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error || new Error('Impossibile aprire l’archivio offline.'));
+          request.onblocked = () => reject(new Error('L’archivio offline è bloccato da un’altra scheda CASA.'));
+        });
+      }
+
+      return uploadDatabasePromise;
+    }
+
+    async function getOfflineUpload(key) {
+      const database = await openUploadDatabase();
+      return new Promise((resolve, reject) => {
+        const transaction = database.transaction(uploadObjectStoreName, 'readonly');
+        const request = transaction.objectStore(uploadObjectStoreName).get(key);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error || new Error('Impossibile leggere un file salvato offline.'));
+        transaction.onerror = () => reject(transaction.error || new Error('Errore durante la lettura del file offline.'));
+      });
+    }
+
+    async function saveOfflineUpload(key, file) {
+      const database = await openUploadDatabase();
+      return new Promise((resolve, reject) => {
+        const transaction = database.transaction(uploadObjectStoreName, 'readwrite');
+        transaction.objectStore(uploadObjectStoreName).put({
+          key,
+          name: file.name,
+          type: file.type,
+          lastModified: file.lastModified,
+          blob: file.slice(0, file.size, file.type)
+        });
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error || new Error('Impossibile salvare il file offline.'));
+        transaction.onabort = () => reject(transaction.error || new Error('Salvataggio offline annullato.'));
+      });
+    }
+
+    function showOfflineUpload(input, fileRecord) {
+      const status = input.closest('.upload-item').querySelector('.file-name');
+      const previousUrl = objectUrls.get(input.dataset.offlineFileKey);
+      if (previousUrl) {
+        URL.revokeObjectURL(previousUrl);
+        objectUrls.delete(input.dataset.offlineFileKey);
+      }
+
+      status.replaceChildren();
+      status.append(document.createTextNode(`Salvato offline: ${fileRecord.name} `));
+
+      const openLink = document.createElement('a');
+      const objectUrl = URL.createObjectURL(fileRecord.blob);
+      objectUrls.set(input.dataset.offlineFileKey, objectUrl);
+      openLink.href = objectUrl;
+      openLink.download = fileRecord.name;
+      openLink.textContent = 'Apri / scarica';
+      openLink.setAttribute('aria-label', `Apri o scarica ${fileRecord.name}`);
+      status.append(openLink);
+    }
+
+    document.querySelectorAll('.upload-item input[type="file"]').forEach((input) => {
+      input.addEventListener('change', async () => {
+        const file = input.files && input.files[0];
+        if (!file) {
+          return;
+        }
+
+        const status = input.closest('.upload-item').querySelector('.file-name');
+        status.textContent = 'Salvataggio offline in corso...';
+        try {
+          await saveOfflineUpload(input.dataset.offlineFileKey, file);
+          showOfflineUpload(input, {
+            name: file.name,
+            blob: file.slice(0, file.size, file.type)
+          });
+        } catch (error) {
+          console.error('Impossibile salvare il file per l’uso offline:', error);
+          status.textContent = `File selezionato ma non salvato offline: ${file.name}. ${error.message}`;
+        }
+      });
+
+      getOfflineUpload(input.dataset.offlineFileKey)
+        .then((fileRecord) => {
+          if (fileRecord) {
+            showOfflineUpload(input, fileRecord);
+          }
+        })
+        .catch((error) => {
+          console.error('Impossibile recuperare il file offline:', error);
+          input.closest('.upload-item').querySelector('.file-name').textContent =
+            `Impossibile recuperare il file offline. ${error.message}`;
+        });
+    });
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .catch((error) => console.error('Impossibile attivare il supporto offline di CASA:', error));
+      });
+    }
+  </script>
+</body>
+</html>
