@@ -171,8 +171,15 @@
       list-style: none;
     }
 
+    .menu-category-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
     .category-button {
-      width: 100%;
+      flex: 1;
+      min-width: 0;
       padding: 7px 8px;
       border: 0;
       border-radius: 7px;
@@ -181,6 +188,29 @@
       font: inherit;
       text-align: left;
       cursor: pointer;
+    }
+
+    .menu-remove-button {
+      flex: 0 0 auto;
+      min-height: 30px;
+      padding: 0 7px;
+      border: 1px solid #e5e9e3;
+      border-radius: 7px;
+      color: #8a5149;
+      background: #fff;
+      font: inherit;
+      font-size: 0.72rem;
+      cursor: pointer;
+    }
+
+    .menu-remove-button:hover {
+      color: #793d35;
+      background: #f8eeeb;
+    }
+
+    .menu-remove-button:focus-visible {
+      outline: 2px solid #58816a;
+      outline-offset: 2px;
     }
 
     .category-button:hover,
@@ -247,6 +277,7 @@
     }
 
     .year-menu {
+      position: relative;
       margin: 0 8px 10px 12px;
       padding-left: 14px;
       border-left: 1px solid #dce6dc;
@@ -258,6 +289,18 @@
       min-height: 40px;
       padding: 0 8px;
       font-size: 0.9rem;
+    }
+
+    .year-menu > summary {
+      padding-right: 76px;
+    }
+
+    .year-menu > .menu-remove-button {
+      position: absolute;
+      z-index: 1;
+      top: 5px;
+      right: 6px;
+      min-height: 30px;
     }
 
     .trip-menu .submenu,
@@ -787,14 +830,17 @@
     }
 
     [data-theme="dark"] .menu-add-form button,
-    [data-theme="dark"] .wishlist-remove {
+    [data-theme="dark"] .wishlist-remove,
+    [data-theme="dark"] .menu-remove-button {
       border-color: #3a4a3d;
       color: #d5e0d7;
       background: #202a23;
     }
 
     [data-theme="dark"] .menu-add-form button:hover,
-    [data-theme="dark"] .wishlist-remove:hover {
+    [data-theme="dark"] .wishlist-remove:hover,
+    [data-theme="dark"] .menu-remove-button:hover {
+      color: #f0c2b8;
       background: #29392d;
     }
 
@@ -1135,8 +1181,10 @@
     const tripStorageKey = 'casa-thailand-shopping-list';
     const tripListPrefix = 'casa-trip-list-';
     const tripsStorageKey = 'casa-trips';
+    const removedTripsStorageKey = 'casa-removed-trips';
     const wishlistStorageKey = 'casa-wishlist';
     const shoppingCategoriesStorageKey = 'casa-shopping-categories';
+    const removedShoppingCategoriesStorageKey = 'casa-removed-shopping-categories';
     const baseShoppingCategories = ['Cibo', 'Bevande', 'Materiale'];
     const wishlistList = document.querySelector('#wishlist-items');
     const wishlistForm = document.querySelector('#wishlist-form');
@@ -1144,9 +1192,13 @@
     const wishlistStatus = document.querySelector('#wishlist-status');
     const billYearsContainer = document.querySelector('#bill-years');
     const billYearsStorageKey = 'casa-bill-years';
+    const removedBillYearsStorageKey = 'casa-removed-bill-years';
     let customShoppingCategories = [];
-    let shoppingCategories = [...baseShoppingCategories];
+    let removedShoppingCategories = [];
+    let shoppingCategories = [];
+    const baseTrips = [{ id: 'thailandia', name: 'Thailandia' }];
     let trips = [{ id: 'thailandia', name: 'Thailandia' }];
+    let removedTrips = [];
     let activeTripId = 'thailandia';
     let activeCategory = 'Tutte';
     let activeTripCategory = 'Spese';
@@ -1154,6 +1206,7 @@
     let tripItems = [];
     let wishlistItems = [];
     let customBillYears = [];
+    let removedBillYears = [];
 
     try {
       const savedCategories = JSON.parse(localStorage.getItem(shoppingCategoriesStorageKey) || '[]');
@@ -1165,13 +1218,28 @@
           !baseShoppingCategories.some((base) => base.toLowerCase() === category.trim().toLowerCase())
         );
       }
-      shoppingCategories = [...baseShoppingCategories, ...customShoppingCategories];
+      const savedRemovedCategories = JSON.parse(localStorage.getItem(removedShoppingCategoriesStorageKey) || '[]');
+      if (Array.isArray(savedRemovedCategories)) {
+        removedShoppingCategories = savedRemovedCategories.filter((category) =>
+          baseShoppingCategories.includes(category)
+        );
+      }
+      shoppingCategories = [
+        ...baseShoppingCategories.filter((category) => !removedShoppingCategories.includes(category)),
+        ...customShoppingCategories
+      ];
     } catch (error) {
       console.error('Impossibile leggere le categorie personalizzate:', error);
       shoppingCategoryStatus.textContent = 'Impossibile leggere le categorie salvate.';
     }
 
     try {
+      const savedRemovedTrips = JSON.parse(localStorage.getItem(removedTripsStorageKey) || '[]');
+      if (Array.isArray(savedRemovedTrips)) {
+        removedTrips = savedRemovedTrips.filter((tripId) =>
+          baseTrips.some((trip) => trip.id === tripId)
+        );
+      }
       const savedTrips = JSON.parse(localStorage.getItem(tripsStorageKey) || '[]');
       if (Array.isArray(savedTrips)) {
         const validTrips = savedTrips.filter((trip) =>
@@ -1180,9 +1248,13 @@
           /^[a-zA-Z0-9-]+$/.test(trip.id) &&
           typeof trip.name === 'string' &&
           trip.name.trim() &&
-          trip.name.length <= 40
+          trip.name.length <= 40 &&
+          !baseTrips.some((baseTrip) => baseTrip.id === trip.id)
         );
-        trips = [trips[0], ...validTrips.filter((trip) => trip.id !== 'thailandia')];
+        trips = [
+          ...baseTrips.filter((trip) => !removedTrips.includes(trip.id)),
+          ...validTrips
+        ];
       }
     } catch (error) {
       console.error('Impossibile leggere le destinazioni salvate:', error);
@@ -1209,6 +1281,12 @@
           year >= 1900 &&
           year <= 9999 &&
           (year < 2026 || year > 2030)
+        );
+      }
+      const savedRemovedYears = JSON.parse(localStorage.getItem(removedBillYearsStorageKey) || '[]');
+      if (Array.isArray(savedRemovedYears)) {
+        removedBillYears = savedRemovedYears.filter((year) =>
+          Number.isInteger(year) && year >= 2026 && year <= 2030
         );
       }
     } catch (error) {
@@ -1289,13 +1367,20 @@
         itemCategoryInput.append(option);
 
         const item = document.createElement('li');
+        item.className = 'menu-category-row';
         const button = document.createElement('button');
         button.className = 'category-button';
         button.type = 'button';
         button.dataset.category = category;
         button.setAttribute('aria-pressed', String(activeCategory === category));
         button.textContent = category;
-        item.append(button);
+        const removeButton = document.createElement('button');
+        removeButton.className = 'menu-remove-button';
+        removeButton.type = 'button';
+        removeButton.dataset.removeShoppingCategory = category;
+        removeButton.textContent = 'Rimuovi';
+        removeButton.setAttribute('aria-label', `Rimuovi la categoria ${category}`);
+        item.append(button, removeButton);
         shoppingCategoryList.append(item);
       });
 
@@ -1313,6 +1398,7 @@
     function saveShoppingCategories() {
       try {
         localStorage.setItem(shoppingCategoriesStorageKey, JSON.stringify(customShoppingCategories));
+        localStorage.setItem(removedShoppingCategoriesStorageKey, JSON.stringify(removedShoppingCategories));
         shoppingCategoryStatus.textContent = '';
         return true;
       } catch (error) {
@@ -1506,6 +1592,39 @@
     });
 
     shoppingCategoryList.addEventListener('click', (event) => {
+      const removeButton = event.target.closest('button[data-remove-shopping-category]');
+      if (removeButton) {
+        const category = removeButton.dataset.removeShoppingCategory;
+        const previousCustom = [...customShoppingCategories];
+        const previousRemoved = [...removedShoppingCategories];
+        customShoppingCategories = customShoppingCategories.filter((item) => item !== category);
+        if (baseShoppingCategories.includes(category) && !removedShoppingCategories.includes(category)) {
+          removedShoppingCategories.push(category);
+        }
+        shoppingCategories = shoppingCategories.filter((item) => item !== category);
+        const previousItems = shoppingItems;
+        shoppingItems = shoppingItems.filter((item) => item.category !== category);
+        if (!saveShoppingCategories()) {
+          customShoppingCategories = previousCustom;
+          removedShoppingCategories = previousRemoved;
+          shoppingCategories = [
+            ...baseShoppingCategories.filter((item) => !removedShoppingCategories.includes(item)),
+            ...customShoppingCategories
+          ];
+          shoppingItems = previousItems;
+          renderShoppingCategories();
+          return;
+        }
+        saveShoppingItems();
+        if (activeCategory === category) {
+          activeCategory = 'Tutte';
+        }
+        renderShoppingCategories();
+        renderShoppingItems();
+        shoppingCategoryStatus.textContent = `Categoria “${category}” e relative voci rimosse.`;
+        return;
+      }
+
       const button = event.target.closest('button[data-category]');
       if (button) {
         showShoppingList(button.dataset.category);
@@ -1525,11 +1644,22 @@
         return;
       }
 
-      customShoppingCategories.push(category);
-      shoppingCategories.push(category);
+      const removedBaseCategory = baseShoppingCategories.find((base) => base.toLowerCase() === category.toLowerCase());
+      if (removedBaseCategory) {
+        removedShoppingCategories = removedShoppingCategories.filter((item) => item !== removedBaseCategory);
+        shoppingCategories.push(removedBaseCategory);
+      } else {
+        customShoppingCategories.push(category);
+        shoppingCategories.push(category);
+      }
       if (!saveShoppingCategories()) {
-        customShoppingCategories.pop();
-        shoppingCategories.pop();
+        if (removedBaseCategory) {
+          removedShoppingCategories.push(removedBaseCategory);
+          shoppingCategories = shoppingCategories.filter((item) => item !== removedBaseCategory);
+        } else {
+          customShoppingCategories.pop();
+          shoppingCategories.pop();
+        }
         return;
       }
       renderShoppingCategories();
@@ -1606,6 +1736,10 @@
         itemNameInput.focus();
         return;
       }
+      if (!shoppingCategories.includes(itemCategoryInput.value)) {
+        storageStatus.textContent = 'Aggiungi prima una categoria alla Lista spesa.';
+        return;
+      }
 
       shoppingItems.push({
         id: crypto.randomUUID(),
@@ -1664,6 +1798,14 @@
       yearSummary.append(chevron);
       yearMenu.append(yearSummary);
 
+      const removeButton = document.createElement('button');
+      removeButton.className = 'menu-remove-button';
+      removeButton.type = 'button';
+      removeButton.dataset.removeBillYear = String(year);
+      removeButton.textContent = 'Rimuovi';
+      removeButton.setAttribute('aria-label', `Rimuovi l’anno ${year} e i PDF associati`);
+      yearMenu.append(removeButton);
+
       const monthList = document.createElement('ul');
       monthList.className = 'submenu upload-list';
       monthList.setAttribute('aria-label', `Bollette ${year}`);
@@ -1701,7 +1843,7 @@
       const years = [...new Set([
         2026, 2027, 2028, 2029, 2030,
         ...customBillYears
-      ])].sort((left, right) => left - right);
+      ])].filter((year) => !removedBillYears.includes(year)).sort((left, right) => left - right);
       years.forEach((year) => billYearsContainer.append(buildBillYear(year)));
 
       const addYearForm = document.createElement('form');
@@ -1742,12 +1884,22 @@
           return;
         }
 
-        customBillYears.push(year);
+        const previouslyRemoved = removedBillYears.includes(year);
+        if (previouslyRemoved) {
+          removedBillYears = removedBillYears.filter((item) => item !== year);
+        } else {
+          customBillYears.push(year);
+        }
         try {
           localStorage.setItem(billYearsStorageKey, JSON.stringify(customBillYears));
+          localStorage.setItem(removedBillYearsStorageKey, JSON.stringify(removedBillYears));
         } catch (error) {
           console.error('Impossibile salvare il nuovo anno delle bollette:', error);
-          customBillYears.pop();
+          if (previouslyRemoved) {
+            removedBillYears.push(year);
+          } else {
+            customBillYears.pop();
+          }
           status.textContent = 'Impossibile salvare l’anno nel browser.';
           return;
         }
@@ -1758,6 +1910,52 @@
     }
 
     renderBillYears();
+
+    billYearsContainer.addEventListener('click', async (event) => {
+      const button = event.target.closest('button[data-remove-bill-year]');
+      if (!button) {
+        return;
+      }
+
+      const year = Number(button.dataset.removeBillYear);
+      const status = document.querySelector('#bill-year-status');
+      button.disabled = true;
+      try {
+        await Promise.all(billMonths.map((month) =>
+          deleteOfflineUpload(`bollette-${year}-${month.toLowerCase()}`)
+        ));
+        billMonths.forEach((month) => {
+          const key = `bollette-${year}-${month.toLowerCase()}`;
+          const objectUrl = objectUrls.get(key);
+          if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+            objectUrls.delete(key);
+          }
+        });
+
+        const previousCustomYears = [...customBillYears];
+        const previousRemovedYears = [...removedBillYears];
+        customBillYears = customBillYears.filter((item) => item !== year);
+        if (year >= 2026 && year <= 2030 && !removedBillYears.includes(year)) {
+          removedBillYears.push(year);
+        }
+        try {
+          localStorage.setItem(billYearsStorageKey, JSON.stringify(customBillYears));
+          localStorage.setItem(removedBillYearsStorageKey, JSON.stringify(removedBillYears));
+        } catch (error) {
+          customBillYears = previousCustomYears;
+          removedBillYears = previousRemovedYears;
+          console.error('Impossibile salvare la rimozione dell’anno:', error);
+          status.textContent = 'I PDF sono stati rimossi, ma non è stato possibile aggiornare l’elenco degli anni.';
+          return;
+        }
+        renderBillYears();
+        billYearsContainer.querySelectorAll('.upload-item input[type="file"]').forEach(setupOfflineFileInput);
+      } catch (error) {
+        console.error(`Impossibile rimuovere i file dell’anno ${year}:`, error);
+        status.textContent = `Impossibile eliminare tutti i PDF dell’anno ${year}. L’anno resta nel menu. ${error.message}`;
+      }
+    });
 
     const uploadDatabaseName = 'casa-offline-files';
     const uploadObjectStoreName = 'uploads';
@@ -1936,6 +2134,13 @@
       uploadItem.append(label, fileName);
       uploads.append(uploadItem);
       menu.append(uploads);
+      const removeButton = document.createElement('button');
+      removeButton.className = 'menu-remove-button';
+      removeButton.type = 'button';
+      removeButton.dataset.removeTrip = trip.id;
+      removeButton.textContent = 'Rimuovi';
+      removeButton.setAttribute('aria-label', `Rimuovi ${trip.name} e i dati associati`);
+      menu.append(removeButton);
       tripMenusContainer.append(menu);
       setupOfflineFileInput(input);
       return menu;
@@ -1960,7 +2165,10 @@
       const trip = { id: `trip-${crypto.randomUUID()}`, name };
       trips.push(trip);
       try {
-        localStorage.setItem(tripsStorageKey, JSON.stringify(trips.slice(1)));
+        localStorage.setItem(
+          tripsStorageKey,
+          JSON.stringify(trips.filter((item) => !baseTrips.some((base) => base.id === item.id)))
+        );
       } catch (error) {
         console.error('Impossibile salvare la nuova destinazione:', error);
         trips.pop();
@@ -1973,6 +2181,66 @@
       tripNameInput.value = '';
       tripAddStatus.textContent = '';
       showTripList(trip.id, 'Spese');
+    });
+
+    tripMenusContainer.addEventListener('click', async (event) => {
+      const button = event.target.closest('button[data-remove-trip]');
+      if (!button) {
+        return;
+      }
+
+      const tripId = button.dataset.removeTrip;
+      const trip = trips.find((item) => item.id === tripId);
+      if (!trip) {
+        tripAddStatus.textContent = 'La destinazione selezionata non è disponibile.';
+        return;
+      }
+
+      button.disabled = true;
+      const uploadKey = tripId === 'thailandia' ? 'thailandia-programmazione' : `trip-${tripId}-programmazione`;
+      try {
+        await deleteOfflineUpload(uploadKey);
+        const objectUrl = objectUrls.get(uploadKey);
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrls.delete(uploadKey);
+        }
+
+        const previousTrips = trips;
+        const previousRemovedTrips = [...removedTrips];
+        trips = trips.filter((item) => item.id !== tripId);
+        if (baseTrips.some((item) => item.id === tripId) && !removedTrips.includes(tripId)) {
+          removedTrips.push(tripId);
+        }
+        try {
+          localStorage.removeItem(tripListStorageKey(tripId));
+          localStorage.setItem(
+            tripsStorageKey,
+            JSON.stringify(trips.filter((item) => !baseTrips.some((base) => base.id === item.id)))
+          );
+          localStorage.setItem(removedTripsStorageKey, JSON.stringify(removedTrips));
+        } catch (error) {
+          trips = previousTrips;
+          removedTrips = previousRemovedTrips;
+          console.error('Impossibile salvare la rimozione della destinazione:', error);
+          tripAddStatus.textContent = 'Il file di programmazione è stato eliminato, ma non è stato possibile aggiornare l’elenco dei viaggi.';
+          return;
+        }
+
+        button.closest('.trip-menu').remove();
+        tripAddStatus.textContent = `${trip.name} e i dati associati sono stati rimossi.`;
+        if (activeTripId === tripId) {
+          welcomePanel.hidden = false;
+          shoppingPanel.hidden = true;
+          tripPanel.hidden = true;
+          activeTripId = trips[0]?.id || '';
+          activeTripCategory = 'Spese';
+        }
+      } catch (error) {
+        console.error(`Impossibile rimuovere i dati del viaggio ${trip.name}:`, error);
+        tripAddStatus.textContent = `Impossibile eliminare i file di ${trip.name}. La destinazione resta nel menu. ${error.message}`;
+        button.disabled = false;
+      }
     });
 
     const homeImageKey = 'casa-home-image';
@@ -2021,50 +2289,4 @@
           blob: imageFile.slice(0, imageFile.size, imageFile.type)
         });
       } catch (error) {
-        console.error('Impossibile salvare l’immagine della homepage offline:', error);
-        homeImageStatus.textContent = `Impossibile salvare l’immagine offline. ${error.message}`;
-      }
-    });
-
-    removeHomeImageButton.addEventListener('click', async () => {
-      removeHomeImageButton.disabled = true;
-      try {
-        await deleteOfflineUpload(homeImageKey);
-        if (homeImageObjectUrl) {
-          URL.revokeObjectURL(homeImageObjectUrl);
-          homeImageObjectUrl = undefined;
-        }
-        homeImagePreview.removeAttribute('src');
-        homeImageContainer.hidden = true;
-        removeHomeImageButton.hidden = true;
-        homeImageStatus.textContent = 'Immagine rimossa.';
-        homeImageInput.value = '';
-      } catch (error) {
-        console.error('Impossibile rimuovere l’immagine della homepage:', error);
-        homeImageStatus.textContent = `Impossibile rimuovere l’immagine. ${error.message}`;
-      } finally {
-        removeHomeImageButton.disabled = false;
-      }
-    });
-
-    getOfflineUpload(homeImageKey)
-      .then((imageRecord) => {
-        if (imageRecord) {
-          displayHomeImage(imageRecord);
-        }
-      })
-      .catch((error) => {
-        console.error('Impossibile recuperare l’immagine offline della homepage:', error);
-        homeImageStatus.textContent = `Impossibile recuperare l’immagine salvata. ${error.message}`;
-      });
-  </script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js')
-          .catch((error) => console.error('Impossibile attivare il supporto offline di CASA:', error));
-      });
-    }
-  </script>
-</body>
-</html>
+       
