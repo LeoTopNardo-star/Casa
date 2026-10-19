@@ -1847,7 +1847,7 @@
       const yearMenu = document.createElement('details');
       yearMenu.className = 'year-menu';
       yearMenu.dataset.year = String(year);
-      yearMenu.open = year === 2026;
+      yearMenu.open = false;
 
       const yearSummary = document.createElement('summary');
       yearSummary.append(document.createTextNode(String(year)));
@@ -1855,7 +1855,10 @@
       chevron.className = 'chevron';
       chevron.setAttribute('aria-hidden', 'true');
       yearSummary.append(chevron);
-      yearSummary.addEventListener('click', () => showBillYear(year));
+      yearSummary.addEventListener('click', (event) => {
+        event.preventDefault();
+        showBillYear(year);
+      });
       yearMenu.append(yearSummary);
 
       const deleteButton = document.createElement('button');
@@ -2313,7 +2316,4 @@
     }
 
     homeImageInput.addEventListener('change', async () => {
-      const imageFile = homeImageInput.files && homeImageInput.files[0];
-      if (!imageFile) {
-        return;
-      }
+      c
