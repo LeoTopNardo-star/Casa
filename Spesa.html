@@ -2316,4 +2316,153 @@
       showTripList(trip.id, 'Spese');
     });
 
-    tri
+    tripMenusContainer.addEventListener('click', async (event) => {
+      const deleteButton = event.target.closest('[data-delete-trip]');
+      if (!deleteButton) {
+        return;
+      }
+
+      const tripId = deleteButton.dataset.deleteTrip;
+      const trip = trips.find((item) => item.id === tripId);
+      if (!trip) {
+        tripAddStatus.textContent = 'La destinazione selezionata non è disponibile.';
+        return;
+      }
+
+      deleteButton.disabled = true;
+      const uploadKey = tripId === 'thailandia' ? 'thailandia-programmazione' : `trip-${tripId}-programmazione`;
+      try {
+        await deleteOfflineUpload(uploadKey);
+        revokeOfflineUploadUrls(uploadKey);
+
+        const previousTrips = trips;
+        const previousRemovedTrips = [...removedTrips];
+        trips = trips.filter((item) => item.id !== tripId);
+        if (baseTrips.some((item) => item.id === tripId) && !removedTrips.includes(tripId)) {
+          removedTrips.push(tripId);
+        }
+        try {
+          localStorage.setItem(
+            tripsStorageKey,
+            JSON.stringify(trips.filter((item) => !baseTrips.some((base) => base.id === item.id)))
+          );
+          localStorage.setItem(removedTripsStorageKey, JSON.stringify(removedTrips));
+          localStorage.removeItem(tripListStorageKey(tripId));
+        } catch (error) {
+          trips = previousTrips;
+          removedTrips = previousRemovedTrips;
+          console.error('Impossibile salvare l’eliminazione del viaggio:', error);
+          tripAddStatus.textContent = 'Il file di programmazione è stato eliminato, ma non è stato possibile aggiornare l’elenco dei viaggi.';
+          deleteButton.disabled = false;
+          return;
+        }
+
+        deleteButton.closest('.trip-menu').remove();
+        tripAddStatus.textContent = `${trip.name} e i dati associati sono stati eliminati.`;
+        if (activeTripId === tripId) {
+          welcomePanel.hidden = false;
+          shoppingPanel.hidden = true;
+          tripPanel.hidden = true;
+          activeTripId = trips[0]?.id || '';
+          activeTripCategory = 'Spese';
+        }
+      } catch (error) {
+        console.error(`Impossibile eliminare i file di ${trip.name}:`, error);
+        tripAddStatus.textContent = `Impossibile eliminare i dati di ${trip.name}. La destinazione resta nel menu. ${error.message}`;
+        deleteButton.disabled = false;
+      }
+    });
+
+    const homeImageKey = 'casa-home-image';
+    const homeImageInput = document.querySelector('#home-image-input');
+    const chooseHomeImageButton = document.querySelector('#choose-home-image');
+    const homeImageContainer = document.querySelector('#home-image');
+    const homeImagePreview = document.querySelector('#home-image-preview');
+    const removeHomeImageButton = document.querySelector('#remove-home-image');
+    const homeImageStatus = document.querySelector('#home-image-status');
+    let homeImageObjectUrl;
+
+    chooseHomeImageButton.addEventListener('click', () => {
+      homeImageInput.click();
+    });
+
+    function displayHomeImage(fileRecord) {
+      if (homeImageObjectUrl) {
+        URL.revokeObjectURL(homeImageObjectUrl);
+      }
+
+      homeImageObjectUrl = URL.createObjectURL(fileRecord.blob);
+      homeImagePreview.src = homeImageObjectUrl;
+      homeImagePreview.alt = `Immagine personalizzata della homepage: ${fileRecord.name}`;
+      homeImageContainer.hidden = false;
+      removeHomeImageButton.hidden = false;
+      homeImageStatus.textContent = `Immagine salvata offline: ${fileRecord.name}`;
+    }
+
+    homeImageInput.addEventListener('change', async () => {
+      const imageFile = homeImageInput.files && homeImageInput.files[0];
+      if (!imageFile) {
+        return;
+      }
+
+      if (!imageFile.type.startsWith('image/')) {
+        homeImageStatus.textContent = 'Seleziona un file immagine valido.';
+        homeImageInput.value = '';
+        return;
+      }
+
+      homeImageStatus.textContent = 'Salvataggio dell’immagine offline in corso...';
+      try {
+        await saveOfflineUpload(homeImageKey, imageFile);
+        displayHomeImage({
+          name: imageFile.name,
+          blob: imageFile.slice(0, imageFile.size, imageFile.type)
+        });
+      } catch (error) {
+        console.error('Impossibile salvare l’immagine della homepage offline:', error);
+        homeImageStatus.textContent = `Impossibile salvare l’immagine offline. ${error.message}`;
+      }
+    });
+
+    removeHomeImageButton.addEventListener('click', async () => {
+      removeHomeImageButton.disabled = true;
+      try {
+        await deleteOfflineUpload(homeImageKey);
+        if (homeImageObjectUrl) {
+          URL.revokeObjectURL(homeImageObjectUrl);
+          homeImageObjectUrl = undefined;
+        }
+        homeImagePreview.removeAttribute('src');
+        homeImageContainer.hidden = true;
+        removeHomeImageButton.hidden = true;
+        homeImageStatus.textContent = 'Immagine rimossa.';
+        homeImageInput.value = '';
+      } catch (error) {
+        console.error('Impossibile rimuovere l’immagine della homepage:', error);
+        homeImageStatus.textContent = `Impossibile rimuovere l’immagine. ${error.message}`;
+      } finally {
+        removeHomeImageButton.disabled = false;
+      }
+    });
+
+    getOfflineUpload(homeImageKey)
+      .then((imageRecord) => {
+        if (imageRecord) {
+          displayHomeImage(imageRecord);
+        }
+      })
+      .catch((error) => {
+        console.error('Impossibile recuperare l’immagine offline della homepage:', error);
+        homeImageStatus.textContent = `Impossibile recuperare l’immagine salvata. ${error.message}`;
+      });
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .catch((error) => console.error('Impossibile attivare il supporto offline di CASA:', error));
+      });
+    }
+  </script>
+</body>
+</html>
