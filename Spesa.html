@@ -1071,7 +1071,7 @@
           </form>
           <p class="menu-add-status" id="trip-add-status" role="status" aria-live="polite"></p>
         </details>
-        <details>
+        <details data-section="wishlist">
           <summary>Wishlist <span class="chevron" aria-hidden="true"></span></summary>
           <ul class="submenu wishlist-list" id="wishlist-items" aria-label="Voci della wishlist"></ul>
           <form class="menu-add-form" id="wishlist-form">
@@ -1137,6 +1137,17 @@
         <p class="shopping-description" id="bill-description"></p>
         <div class="bill-months" id="bill-months" aria-label="Caricamento PDF bollette"></div>
       </section>
+      <section class="shopping-panel" id="wishlist-panel" aria-labelledby="wishlist-title" hidden>
+        <h1 id="wishlist-title">Wishlist</h1>
+        <p class="shopping-description">Aggiungi le cose che desideri e segna quelle già acquistate.</p>
+        <form class="shopping-form" id="wishlist-center-form">
+          <input id="wishlist-center-name" name="item" type="text" maxlength="80" placeholder="Es. Lampada da tavolo" aria-label="Nome della voce wishlist" required>
+          <button type="submit">Aggiungi</button>
+        </form>
+        <ul class="shopping-items" id="wishlist-center-items" aria-live="polite"></ul>
+        <p class="empty-list" id="wishlist-empty-list">La Wishlist è vuota: aggiungi la prima voce.</p>
+        <p class="storage-status" id="wishlist-center-status" role="status"></p>
+      </section>
     </main>
   </div>
   <div class="theme-switcher" role="group" aria-label="Seleziona il tema">
@@ -1190,6 +1201,12 @@
     const billTitle = document.querySelector('#bill-title');
     const billDescription = document.querySelector('#bill-description');
     const billMonthsPanel = document.querySelector('#bill-months');
+    const wishlistPanel = document.querySelector('#wishlist-panel');
+    const wishlistCenterForm = document.querySelector('#wishlist-center-form');
+    const wishlistCenterNameInput = document.querySelector('#wishlist-center-name');
+    const wishlistCenterItems = document.querySelector('#wishlist-center-items');
+    const wishlistEmptyListMessage = document.querySelector('#wishlist-empty-list');
+    const wishlistCenterStatus = document.querySelector('#wishlist-center-status');
     const shoppingForm = document.querySelector('#shopping-form');
     const itemNameInput = document.querySelector('#item-name');
     const itemCategoryInput = document.querySelector('#item-category');
@@ -1298,9 +1315,9 @@
     try {
       const savedWishlist = JSON.parse(localStorage.getItem(wishlistStorageKey) || '[]');
       if (Array.isArray(savedWishlist)) {
-        wishlistItems = savedWishlist.filter((item) =>
-          item && typeof item.id === 'string' && typeof item.name === 'string'
-        );
+        wishlistItems = savedWishlist
+          .filter((item) => item && typeof item.id === 'string' && typeof item.name === 'string')
+          .map((item) => ({ ...item, done: item.done === true }));
       }
     } catch (error) {
       console.error('Impossibile leggere la Wishlist salvata:', error);
@@ -1531,6 +1548,7 @@
       shoppingPanel.hidden = false;
       tripPanel.hidden = true;
       billPanel.hidden = true;
+      wishlistPanel.hidden = true;
       shoppingCategoryList.querySelectorAll('[data-category]').forEach((button) => {
         button.setAttribute('aria-pressed', String(button.dataset.category === activeCategory));
       });
@@ -1575,6 +1593,7 @@
       shoppingPanel.hidden = true;
       tripPanel.hidden = false;
       billPanel.hidden = true;
+      wishlistPanel.hidden = true;
       tripPanel.querySelector('.shopping-description').textContent =
         `Aggiungi e organizza le voci di spese e hotel per ${selectedTrip.name}.`;
       tripMenusContainer.querySelectorAll('.trip-category-button').forEach((button) => {
@@ -1591,11 +1610,23 @@
       showShoppingList();
     });
 
+    function showWishlist() {
+      welcomePanel.hidden = true;
+      shoppingPanel.hidden = true;
+      tripPanel.hidden = true;
+      billPanel.hidden = true;
+      wishlistPanel.hidden = false;
+      renderWishlistItems();
+    }
+
+    document.querySelector('[data-section="wishlist"] > summary').addEventListener('click', showWishlist);
+
     document.querySelector('#home-button').addEventListener('click', () => {
       welcomePanel.hidden = false;
       shoppingPanel.hidden = true;
       tripPanel.hidden = true;
       billPanel.hidden = true;
+      wishlistPanel.hidden = true;
       document.querySelectorAll('.menu details').forEach((menuSection) => {
         menuSection.open = false;
       });
@@ -1682,6 +1713,16 @@
       shoppingCategoryNameInput.value = '';
     });
 
+    function removeWishlistItem(itemId) {
+      const previousItems = wishlistItems;
+      wishlistItems = wishlistItems.filter((item) => item.id !== itemId);
+      if (!saveWishlistItems()) {
+        wishlistItems = previousItems;
+        return;
+      }
+      renderWishlistItems();
+    }
+
     function renderWishlistItems() {
       wishlistList.replaceChildren();
       if (wishlistItems.length === 0) {
@@ -1689,7 +1730,6 @@
         emptyItem.className = 'wishlist-item';
         emptyItem.textContent = 'Nessun elemento ancora.';
         wishlistList.append(emptyItem);
-        return;
       }
 
       wishlistItems.forEach((item) => {
@@ -1703,29 +1743,68 @@
         deleteButton.textContent = '×';
         deleteButton.setAttribute('aria-label', `Elimina ${item.name} dalla Wishlist`);
         deleteButton.addEventListener('click', () => {
-          const previousItems = wishlistItems;
-          wishlistItems = wishlistItems.filter((entry) => entry.id !== item.id);
-          if (!saveWishlistItems()) {
-            wishlistItems = previousItems;
-            return;
-          }
-          renderWishlistItems();
+          removeWishlistItem(item.id);
         });
         row.append(name, deleteButton);
         wishlistList.append(row);
       });
+
+      wishlistCenterItems.replaceChildren();
+      wishlistItems.forEach((item) => {
+        const row = document.createElement('li');
+        row.className = `shopping-item${item.done ? ' done' : ''}`;
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = item.done;
+        checkbox.setAttribute('aria-label', `Segna ${item.name} come ${item.done ? 'da completare' : 'completata'}`);
+        checkbox.addEventListener('change', () => {
+          const previousDone = item.done;
+          item.done = checkbox.checked;
+          if (!saveWishlistItems()) {
+            item.done = previousDone;
+            checkbox.checked = previousDone;
+            return;
+          }
+          renderWishlistItems();
+        });
+        const text = document.createElement('span');
+        text.className = 'shopping-item-text';
+        text.textContent = item.name;
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'remove-item';
+        deleteButton.type = 'button';
+        deleteButton.textContent = 'Rimuovi';
+        deleteButton.setAttribute('aria-label', `Rimuovi ${item.name} dalla Wishlist`);
+        deleteButton.addEventListener('click', () => removeWishlistItem(item.id));
+        row.append(checkbox, text, deleteButton);
+        wishlistCenterItems.append(row);
+      });
+      wishlistEmptyListMessage.hidden = wishlistItems.length > 0;
     }
 
     function saveWishlistItems() {
       try {
         localStorage.setItem(wishlistStorageKey, JSON.stringify(wishlistItems));
         wishlistStatus.textContent = '';
+        wishlistCenterStatus.textContent = '';
         return true;
       } catch (error) {
         console.error('Impossibile salvare la Wishlist:', error);
         wishlistStatus.textContent = 'Impossibile salvare la Wishlist nel browser.';
+        wishlistCenterStatus.textContent = 'Impossibile salvare la Wishlist nel browser.';
         return false;
       }
+    }
+
+    function addWishlistItem(name, input) {
+      const item = { id: crypto.randomUUID(), name, done: false };
+      wishlistItems.push(item);
+      if (!saveWishlistItems()) {
+        wishlistItems.pop();
+        return;
+      }
+      renderWishlistItems();
+      input.value = '';
     }
 
     wishlistForm.addEventListener('submit', (event) => {
@@ -1736,14 +1815,18 @@
         return;
       }
 
-      const item = { id: crypto.randomUUID(), name };
-      wishlistItems.push(item);
-      if (!saveWishlistItems()) {
-        wishlistItems.pop();
+      addWishlistItem(name, wishlistNameInput);
+    });
+
+    wishlistCenterForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const name = wishlistCenterNameInput.value.trim();
+      if (!name) {
+        wishlistCenterNameInput.focus();
         return;
       }
-      renderWishlistItems();
-      wishlistNameInput.value = '';
+
+      addWishlistItem(name, wishlistCenterNameInput);
     });
 
     renderWishlistItems();
@@ -1832,6 +1915,7 @@
       shoppingPanel.hidden = true;
       tripPanel.hidden = true;
       billPanel.hidden = false;
+      wishlistPanel.hidden = true;
       billTitle.textContent = `Bollette ${year}`;
       billDescription.textContent = `Carica e conserva offline i PDF delle bollette del ${year}.`;
       billMonthsPanel.replaceChildren();
@@ -2232,88 +2316,4 @@
       showTripList(trip.id, 'Spese');
     });
 
-    tripMenusContainer.addEventListener('click', async (event) => {
-      const deleteButton = event.target.closest('[data-delete-trip]');
-      if (!deleteButton) {
-        return;
-      }
-
-      const tripId = deleteButton.dataset.deleteTrip;
-      const trip = trips.find((item) => item.id === tripId);
-      if (!trip) {
-        tripAddStatus.textContent = 'La destinazione selezionata non è disponibile.';
-        return;
-      }
-
-      deleteButton.disabled = true;
-      const uploadKey = tripId === 'thailandia' ? 'thailandia-programmazione' : `trip-${tripId}-programmazione`;
-      try {
-        await deleteOfflineUpload(uploadKey);
-        revokeOfflineUploadUrls(uploadKey);
-
-        const previousTrips = trips;
-        const previousRemovedTrips = [...removedTrips];
-        trips = trips.filter((item) => item.id !== tripId);
-        if (baseTrips.some((item) => item.id === tripId) && !removedTrips.includes(tripId)) {
-          removedTrips.push(tripId);
-        }
-        try {
-          localStorage.setItem(
-            tripsStorageKey,
-            JSON.stringify(trips.filter((item) => !baseTrips.some((base) => base.id === item.id)))
-          );
-          localStorage.setItem(removedTripsStorageKey, JSON.stringify(removedTrips));
-          localStorage.removeItem(tripListStorageKey(tripId));
-        } catch (error) {
-          trips = previousTrips;
-          removedTrips = previousRemovedTrips;
-          console.error('Impossibile salvare l’eliminazione del viaggio:', error);
-          tripAddStatus.textContent = 'Il file di programmazione è stato eliminato, ma non è stato possibile aggiornare l’elenco dei viaggi.';
-          deleteButton.disabled = false;
-          return;
-        }
-
-        deleteButton.closest('.trip-menu').remove();
-        tripAddStatus.textContent = `${trip.name} e i dati associati sono stati eliminati.`;
-        if (activeTripId === tripId) {
-          welcomePanel.hidden = false;
-          shoppingPanel.hidden = true;
-          tripPanel.hidden = true;
-          activeTripId = trips[0]?.id || '';
-          activeTripCategory = 'Spese';
-        }
-      } catch (error) {
-        console.error(`Impossibile eliminare i file di ${trip.name}:`, error);
-        tripAddStatus.textContent = `Impossibile eliminare i dati di ${trip.name}. La destinazione resta nel menu. ${error.message}`;
-        deleteButton.disabled = false;
-      }
-    });
-
-    const homeImageKey = 'casa-home-image';
-    const homeImageInput = document.querySelector('#home-image-input');
-    const chooseHomeImageButton = document.querySelector('#choose-home-image');
-    const homeImageContainer = document.querySelector('#home-image');
-    const homeImagePreview = document.querySelector('#home-image-preview');
-    const removeHomeImageButton = document.querySelector('#remove-home-image');
-    const homeImageStatus = document.querySelector('#home-image-status');
-    let homeImageObjectUrl;
-
-    chooseHomeImageButton.addEventListener('click', () => {
-      homeImageInput.click();
-    });
-
-    function displayHomeImage(fileRecord) {
-      if (homeImageObjectUrl) {
-        URL.revokeObjectURL(homeImageObjectUrl);
-      }
-
-      homeImageObjectUrl = URL.createObjectURL(fileRecord.blob);
-      homeImagePreview.src = homeImageObjectUrl;
-      homeImagePreview.alt = `Immagine personalizzata della homepage: ${fileRecord.name}`;
-      homeImageContainer.hidden = false;
-      removeHomeImageButton.hidden = false;
-      homeImageStatus.textContent = `Immagine salvata offline: ${fileRecord.name}`;
-    }
-
-    homeImageInput.addEventListener('change', async () => {
-      c
+    tri
