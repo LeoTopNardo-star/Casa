@@ -1,8 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#17211a"/>
-  <path d="M92 239 256 105l164 134v172a20 20 0 0 1-20 20H112a20 20 0 0 1-20-20z" fill="#2c4433"/>
-  <path d="m68 248 188-154 188 154-23 28L256 132 91 276z" fill="#9bc6a2"/>
-  <path d="M211 431V286h90v145" fill="#c5e2ca"/>
-  <rect x="132" y="288" width="54" height="54" rx="8" fill="#9bc6a2"/>
-  <rect x="326" y="288" width="54" height="54" rx="8" fill="#9bc6a2"/>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#263b2d"/>
+      <stop offset="1" stop-color="#111a14"/>
+    </linearGradient>
+    <linearGradient id="roof" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c3dfbd"/>
+      <stop offset="1" stop-color="#83ac8b"/>
+    </linearGradient>
+    <linearGradient id="window" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff0bd"/>
+      <stop offset="1" stop-color="#e9b968"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#background)"/>
+  <path d="M94 241 256 112l162 129v155a21 21 0 0 1-21 21H115a21 21 0 0 1-21-21z" fill="#e8eee3"/>
+  <path d="m72 244 184-147 184 147-24 30L256 135 96 274z" fill="url(#roof)"/>
+  <path d="M210 417V286a13 13 0 0 1 13-13h66a13 13 0 0 1 13 13v131z" fill="#52755b"/>
+  <circle cx="279" cy="346" r="5" fill="#f5d28c"/>
+  <rect x="126" y="284" width="62" height="68" rx="12" fill="url(#window)"/>
+  <path d="M157 284v68m-31-34h62" fill="none" stroke="#52755b" stroke-linecap="round" stroke-width="8"/>
+  <rect x="324" y="284" width="62" height="68" rx="12" fill="url(#window)"/>
+  <path d="M355 284v68m-31-34h62" fill="none" stroke="#52755b" stroke-linecap="round" stroke-width="8"/>
 </svg>
