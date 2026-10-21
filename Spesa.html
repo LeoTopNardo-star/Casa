@@ -133,6 +133,10 @@
       box-shadow: 0 4px 12px rgb(38 53 45 / 10%);
     }
 
+    .account-controls {
+      display: contents;
+    }
+
     .sidebar {
       padding: 44px 20px;
       position: relative;
@@ -1119,6 +1123,53 @@
     }
 
     @media (max-width: 640px) {
+      .account-controls {
+        position: fixed;
+        z-index: 5;
+        right: 12px;
+        bottom: 12px;
+        left: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .account-controls .sync-toolbar,
+      .account-controls .theme-switcher {
+        position: static;
+        min-width: 0;
+        margin: 0;
+      }
+
+      .account-controls .sync-toolbar {
+        flex: 1;
+        gap: 6px;
+        padding: 6px 8px;
+        font-size: 0.75rem;
+      }
+
+      .account-controls .sync-toolbar > span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .account-controls .sync-status {
+        position: fixed;
+        top: auto;
+        right: 12px;
+        bottom: 68px;
+        left: 12px;
+        max-width: none;
+      }
+
+      .account-controls .theme-switcher button {
+        padding: 0 8px;
+        font-size: 0.75rem;
+      }
+
       .page {
         grid-template-columns: 1fr;
         grid-template-rows: auto 1fr;
@@ -1151,10 +1202,6 @@
         flex-basis: 96px;
       }
 
-      .theme-switcher {
-        bottom: 12px;
-        left: 12px;
-      }
     }
   </style>
 </head>
@@ -1171,11 +1218,17 @@
     </form>
     <p class="auth-status" id="auth-status" role="status" aria-live="polite"></p>
   </section>
-  <div class="sync-toolbar" id="sync-toolbar" hidden>
-    <span id="signed-in-email"></span>
-    <button id="sign-out" type="button">Esci</button>
+  <div class="account-controls">
+    <div class="sync-toolbar" id="sync-toolbar" hidden>
+      <span id="signed-in-email"></span>
+      <button id="sign-out" type="button">Esci</button>
+    </div>
+    <p class="sync-status" id="sync-status" role="status" aria-live="polite"></p>
+    <div class="theme-switcher" role="group" aria-label="Seleziona il tema">
+      <button type="button" data-theme-choice="light" aria-pressed="true">☀ Chiaro</button>
+      <button type="button" data-theme-choice="dark" aria-pressed="false">☾ Scuro</button>
+    </div>
   </div>
-  <p class="sync-status" id="sync-status" role="status" aria-live="polite"></p>
   <div class="page">
     <aside class="sidebar" aria-label="Menu principale">
       <button class="brand" id="home-button" type="button" aria-label="Torna alla homepage">CASA</button>
@@ -1280,10 +1333,6 @@
         <p class="storage-status" id="wishlist-center-status" role="status"></p>
       </section>
     </main>
-  </div>
-  <div class="theme-switcher" role="group" aria-label="Seleziona il tema">
-    <button type="button" data-theme-choice="light" aria-pressed="true">☀ Chiaro</button>
-    <button type="button" data-theme-choice="dark" aria-pressed="false">☾ Scuro</button>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
