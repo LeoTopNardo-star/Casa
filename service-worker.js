@@ -1,4 +1,4 @@
-const CACHE_NAME = 'casa-pwa-v17';
+const CACHE_NAME = 'casa-pwa-v18';
 const APP_FILES = [
   './index.html',
   './Spesa.html',
