@@ -1,9 +1,12 @@
-const CACHE_NAME = 'casa-pwa-v19';
+const CACHE_NAME = 'casa-pwa-v20';
 const APP_FILES = [
   './index.html',
   './Spesa.html',
   './manifest.webmanifest',
-  './casa.svg'
+  './casa.svg',
+  './apple-touch-icon.png',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
