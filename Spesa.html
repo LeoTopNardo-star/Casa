@@ -1246,7 +1246,7 @@
       </section>
       <section class="shopping-panel" aria-labelledby="trip-title" hidden>
         <h1 id="trip-title"></h1>
-        <p class="shopping-description" id="trip-description">Aggiungi e organizza le voci di spese e hotel.</p>
+        <p class="shopping-description" id="trip-description">Aggiungi e organizza le voci per il viaggio.</p>
         <form class="shopping-form" id="trip-form">
           <input id="trip-item-name" name="item" type="text" maxlength="120" placeholder="Es. Trasferimento aeroporto" aria-label="Nome della voce Thailandia" required>
           <select id="trip-item-category" name="category" aria-label="Categoria Thailandia">
@@ -1645,6 +1645,7 @@
     const tripAddStatus = document.querySelector('#trip-add-status');
     const tripStorageKey = 'casa-thailand-shopping-list';
     const tripListPrefix = 'casa-trip-list-';
+    const tripCategoriesStorageKey = 'casa-trip-categories';
     const tripsStorageKey = 'casa-trips';
     const removedTripsStorageKey = 'casa-removed-trips';
     const wishlistStorageKey = 'casa-wishlist';
@@ -1657,12 +1658,26 @@
     const wishlistNameInput = document.querySelector('#wishlist-name-input');
     const wishlistStatus = document.querySelector('#wishlist-status');
     const billYearsContainer = document.querySelector('#bill-years');
+    function scrollToPanelOnMobile(panel) {
+      if (!window.matchMedia('(max-width: 640px)').matches) {
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        panel.scrollIntoView({
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+          block: 'start'
+        });
+      });
+    }
+
     const billYearsStorageKey = 'casa-bill-years';
     const removedBillYearsStorageKey = 'casa-removed-bill-years';
     let customShoppingCategories = [];
     let removedShoppingCategories = [];
     let shoppingCategories = [];
     let trips = [...baseTrips];
+    let tripCategories = {};
     let removedTrips = [];
     let activeTripId = 'thailandia';
     let activeCategory = 'Tutte';
@@ -1726,6 +1741,37 @@
     }
 
     try {
+      const savedTripCategories = JSON.parse(localStorage.getItem(tripCategoriesStorageKey) || '{}');
+      if (savedTripCategories && typeof savedTripCategories === 'object' && !Array.isArray(savedTripCategories)) {
+        Object.entries(savedTripCategories).forEach(([tripId, categories]) => {
+          if (!/^[a-zA-Z0-9-]+$/.test(tripId) || !Array.isArray(categories)) {
+            return;
+          }
+          const normalizedCategories = [];
+          categories.forEach((category) => {
+            if (typeof category !== 'string' || !category.trim() || category.trim().length > 40) {
+              return;
+            }
+            const name = category.trim();
+            if (
+              ['Spese', 'Hotel'].some((base) => base.toLowerCase() === name.toLowerCase()) ||
+              normalizedCategories.some((entry) => entry.toLowerCase() === name.toLowerCase())
+            ) {
+              return;
+            }
+            normalizedCategories.push(name);
+          });
+          if (normalizedCategories.length > 0) {
+            tripCategories[tripId] = normalizedCategories;
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Impossibile leggere le categorie dei viaggi salvate:', error);
+      tripAddStatus.textContent = 'Impossibile leggere le categorie personalizzate dei viaggi.';
+    }
+
+    try {
       const savedWishlist = JSON.parse(localStorage.getItem(wishlistStorageKey) || '[]');
       if (Array.isArray(savedWishlist)) {
         wishlistItems = savedWishlist
@@ -1779,6 +1825,10 @@
       return tripId === 'thailandia' ? tripStorageKey : `${tripListPrefix}${tripId}`;
     }
 
+    function getTripCategories(tripId) {
+      return ['Spese', 'Hotel', ...(tripCategories[tripId] || [])];
+    }
+
     function loadTripItems(tripId) {
       tripStorageStatus.textContent = '';
       try {
@@ -1796,7 +1846,7 @@
           item &&
           typeof item.id === 'string' &&
           typeof item.name === 'string' &&
-          ['Spese', 'Hotel'].includes(item.category) &&
+          getTripCategories(tripId).includes(item.category) &&
           typeof item.done === 'boolean' &&
           (item.amount === undefined || item.amount === null || (typeof item.amount === 'number' && Number.isFinite(item.amount) && item.amount >= 0))
         ).map((item) => ({
@@ -2001,6 +2051,12 @@
       }
       activeTripCategory = category;
       tripTitle.textContent = selectedTrip.name;
+      tripItemCategoryInput.replaceChildren(...getTripCategories(tripId).map((tripCategory) => {
+        const option = document.createElement('option');
+        option.value = tripCategory;
+        option.textContent = tripCategory;
+        return option;
+      }));
       tripItemCategoryInput.value = category;
       welcomePanel.hidden = true;
       shoppingPanel.hidden = true;
@@ -2008,7 +2064,7 @@
       billPanel.hidden = true;
       wishlistPanel.hidden = true;
       tripPanel.querySelector('.shopping-description').textContent =
-        `Aggiungi e organizza le voci di spese e hotel per ${selectedTrip.name}.`;
+        `Aggiungi e organizza le voci per ${selectedTrip.name}.`;
       tripMenusContainer.querySelectorAll('.trip-category-button').forEach((button) => {
         const buttonTrip = button.closest('.trip-menu');
         button.setAttribute('aria-pressed', String(button.dataset.tripCategory === activeTripCategory));
@@ -2021,6 +2077,7 @@
 
     document.querySelector('[data-section="shopping"] > summary').addEventListener('click', () => {
       showShoppingList();
+      scrollToPanelOnMobile(shoppingPanel);
     });
 
     function showWishlist() {
@@ -2032,7 +2089,10 @@
       renderWishlistItems();
     }
 
-    document.querySelector('[data-section="wishlist"] > summary').addEventListener('click', showWishlist);
+    document.querySelector('[data-section="wishlist"] > summary').addEventListener('click', () => {
+      showWishlist();
+      scrollToPanelOnMobile(wishlistPanel);
+    });
 
     document.querySelector('#home-button').addEventListener('click', () => {
       welcomePanel.hidden = false;
@@ -2087,6 +2147,7 @@
       const button = event.target.closest('button[data-category]');
       if (button) {
         showShoppingList(button.dataset.category);
+        scrollToPanelOnMobile(shoppingPanel);
       }
     });
 
@@ -2355,6 +2416,7 @@
       yearSummary.addEventListener('click', (event) => {
         event.preventDefault();
         showBillYear(year);
+        scrollToPanelOnMobile(billPanel);
       });
       yearMenu.append(yearSummary);
 
@@ -2763,49 +2825,93 @@
       chevron.className = 'chevron';
       chevron.setAttribute('aria-hidden', 'true');
       summary.append(chevron);
-      summary.addEventListener('click', () => showTripList(trip.id, 'Spese'));
+      summary.addEventListener('click', () => {
+        showTripList(trip.id, 'Spese');
+        scrollToPanelOnMobile(tripPanel);
+      });
       menu.append(summary);
 
       const categories = document.createElement('ul');
       categories.className = 'submenu category-list';
       categories.setAttribute('aria-label', `Filtra le voci ${trip.name}`);
-      ['Spese', 'Hotel'].forEach((category) => {
-        const item = document.createElement('li');
-        const button = document.createElement('button');
-        button.className = 'category-button trip-category-button';
-        button.type = 'button';
-        button.dataset.tripCategory = category;
-        button.setAttribute('aria-pressed', String(trip.id === activeTripId && category === activeTripCategory));
-        button.textContent = category;
-        button.addEventListener('click', () => showTripList(trip.id, category));
-        item.append(button);
-        categories.append(item);
-      });
+      const renderCategories = () => {
+        categories.replaceChildren();
+        getTripCategories(trip.id).forEach((category) => {
+          const item = document.createElement('li');
+          const button = document.createElement('button');
+          button.className = 'category-button trip-category-button';
+          button.type = 'button';
+          button.dataset.tripCategory = category;
+          button.setAttribute('aria-pressed', String(trip.id === activeTripId && category === activeTripCategory));
+          button.textContent = category;
+          button.addEventListener('click', () => {
+            showTripList(trip.id, category);
+            scrollToPanelOnMobile(tripPanel);
+          });
+          item.append(button);
+          categories.append(item);
+        });
+      };
+      renderCategories();
       menu.append(categories);
 
-      const uploads = document.createElement('ul');
-      uploads.className = 'submenu upload-list';
-      const uploadItem = document.createElement('li');
-      uploadItem.className = 'upload-item';
-      const label = document.createElement('label');
-      const text = document.createElement('span');
-      text.textContent = 'Programmazione';
-      const action = document.createElement('span');
-      action.className = 'upload-action';
-      action.textContent = 'Carica file';
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.dataset.offlineFileKey = trip.id === 'thailandia'
-        ? 'thailandia-programmazione'
-        : `trip-${trip.id}-programmazione`;
-      input.setAttribute('aria-label', `Carica un file per la programmazione di ${trip.name}`);
-      label.append(text, action, input);
-      const fileName = document.createElement('span');
-      fileName.className = 'file-name';
-      fileName.setAttribute('aria-live', 'polite');
-      uploadItem.append(label, fileName);
-      uploads.append(uploadItem);
-      menu.append(uploads);
+      const categoryForm = document.createElement('form');
+      categoryForm.className = 'menu-add-form';
+      const categoryInput = document.createElement('input');
+      categoryInput.type = 'text';
+      categoryInput.maxLength = 40;
+      categoryInput.placeholder = 'Nuova voce';
+      categoryInput.setAttribute('aria-label', `Nome nuova voce per ${trip.name}`);
+      categoryInput.required = true;
+      const categoryAddButton = document.createElement('button');
+      categoryAddButton.type = 'submit';
+      categoryAddButton.textContent = 'Aggiungi';
+      categoryForm.append(categoryInput, categoryAddButton);
+      menu.append(categoryForm);
+
+      const categoryStatus = document.createElement('p');
+      categoryStatus.className = 'menu-add-status';
+      categoryStatus.setAttribute('role', 'status');
+      categoryStatus.setAttribute('aria-live', 'polite');
+      menu.append(categoryStatus);
+
+      categoryForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const name = categoryInput.value.trim();
+        if (!name) {
+          categoryInput.focus();
+          return;
+        }
+        if (getTripCategories(trip.id).some((category) => category.toLowerCase() === name.toLowerCase())) {
+          categoryStatus.textContent = 'Questa voce esiste già.';
+          categoryInput.focus();
+          return;
+        }
+
+        const previousCategories = tripCategories[trip.id] || [];
+        tripCategories[trip.id] = [...previousCategories, name];
+        try {
+          localStorage.setItem(tripCategoriesStorageKey, JSON.stringify(tripCategories));
+        } catch (error) {
+          tripCategories[trip.id] = previousCategories;
+          console.error('Impossibile salvare la nuova voce del viaggio:', error);
+          categoryStatus.textContent = 'Impossibile salvare la voce nel browser.';
+          return;
+        }
+
+        categoryInput.value = '';
+        categoryStatus.textContent = '';
+        renderCategories();
+        if (activeTripId === trip.id) {
+          tripItemCategoryInput.replaceChildren(...getTripCategories(trip.id).map((category) => {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            return option;
+          }));
+          tripItemCategoryInput.value = activeTripCategory;
+        }
+      });
       const deleteRow = document.createElement('div');
       deleteRow.className = 'trip-menu-delete-row';
       const deleteButton = document.createElement('button');
@@ -2817,7 +2923,6 @@
       deleteRow.append(deleteButton);
       menu.append(deleteRow);
       tripMenusContainer.append(menu);
-      setupOfflineFileInput(input);
       return menu;
     }
 
