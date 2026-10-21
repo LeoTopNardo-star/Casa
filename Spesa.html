@@ -157,6 +157,7 @@
       font-weight: 750;
       letter-spacing: 0.2em;
       text-align: center;
+      text-shadow: 0 1px 2px rgb(38 53 45 / 24%);
       cursor: pointer;
       transition: transform 160ms ease, box-shadow 160ms ease;
     }
@@ -209,6 +210,10 @@
       list-style: none;
       cursor: pointer;
       transition: background-color 150ms ease, color 150ms ease;
+    }
+
+    .menu > details > summary {
+      text-shadow: 0 1px 2px rgb(38 53 45 / 22%);
     }
 
     summary::-webkit-details-marker {
@@ -367,6 +372,15 @@
       overflow-wrap: anywhere;
       padding: 0 8px 5px;
       color: #78857b;
+      font-size: 0.75rem;
+    }
+
+    .file-delete {
+      display: inline-flex;
+      width: auto;
+      height: auto;
+      margin-left: 8px;
+      padding: 3px 7px;
       font-size: 0.75rem;
     }
 
@@ -866,6 +880,7 @@
       background: linear-gradient(135deg, #27382c 0%, #1e2b22 100%);
       border-color: #3b5140;
       box-shadow: 0 10px 24px rgb(0 0 0 / 26%);
+      text-shadow: 0 1px 3px rgb(0 0 0 / 65%);
     }
 
     [data-theme="dark"] .brand:hover {
@@ -906,6 +921,10 @@
 
     [data-theme="dark"] summary {
       color: #d5e0d7;
+    }
+
+    [data-theme="dark"] .menu > details > summary {
+      text-shadow: 0 1px 3px rgb(0 0 0 / 65%);
     }
 
     [data-theme="dark"] summary:hover,
@@ -2671,6 +2690,28 @@
       openLink.textContent = 'Apri / scarica';
       openLink.setAttribute('aria-label', `Apri o scarica ${fileRecord.name}`);
       status.append(openLink);
+
+      if (input.accept === 'application/pdf,.pdf') {
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'submenu-delete file-delete';
+        deleteButton.type = 'button';
+        deleteButton.textContent = 'Elimina PDF';
+        deleteButton.setAttribute('aria-label', `Elimina il PDF ${fileRecord.name}`);
+        deleteButton.addEventListener('click', async () => {
+          deleteButton.disabled = true;
+          try {
+            await deleteOfflineUpload(input.dataset.offlineFileKey);
+            revokeOfflineUploadUrls(input.dataset.offlineFileKey);
+            input.value = '';
+            status.textContent = 'PDF eliminato.';
+          } catch (error) {
+            console.error('Impossibile eliminare il PDF della bolletta:', error);
+            status.append(document.createTextNode(` Errore: ${error.message}`));
+            deleteButton.disabled = false;
+          }
+        });
+        status.append(deleteButton);
+      }
     }
 
     function setupOfflineFileInput(input) {
