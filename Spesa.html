@@ -1712,6 +1712,7 @@
     const tripStorageKey = 'casa-thailand-shopping-list';
     const tripListPrefix = 'casa-trip-list-';
     const tripCategoriesStorageKey = 'casa-trip-categories';
+    const removedTripCategoriesStorageKey = 'casa-removed-trip-categories';
     const tripsStorageKey = 'casa-trips';
     const removedTripsStorageKey = 'casa-removed-trips';
     const wishlistStorageKey = 'casa-wishlist';
@@ -1744,6 +1745,7 @@
     let shoppingCategories = [];
     let trips = [...baseTrips];
     let tripCategories = {};
+    let removedTripCategories = {};
     let removedTrips = [];
     let activeTripId = 'thailandia';
     let activeCategory = 'Tutte';
@@ -1838,6 +1840,27 @@
     }
 
     try {
+      const savedRemovedTripCategories = JSON.parse(localStorage.getItem(removedTripCategoriesStorageKey) || '{}');
+      if (savedRemovedTripCategories && typeof savedRemovedTripCategories === 'object' && !Array.isArray(savedRemovedTripCategories)) {
+        Object.entries(savedRemovedTripCategories).forEach(([tripId, categories]) => {
+          if (
+            !/^[a-zA-Z0-9-]+$/.test(tripId) ||
+            !Array.isArray(categories)
+          ) {
+            return;
+          }
+          removedTripCategories[tripId] = [...new Set(categories.filter((category) =>
+            typeof category === 'string' &&
+            ['Spese', 'Hotel'].includes(category)
+          ))];
+        });
+      }
+    } catch (error) {
+      console.error('Impossibile leggere le categorie rimosse dei viaggi:', error);
+      tripAddStatus.textContent = 'Impossibile leggere le categorie rimosse dei viaggi.';
+    }
+
+    try {
       const savedWishlist = JSON.parse(localStorage.getItem(wishlistStorageKey) || '[]');
       if (Array.isArray(savedWishlist)) {
         wishlistItems = savedWishlist
@@ -1892,7 +1915,11 @@
     }
 
     function getTripCategories(tripId) {
-      return ['Spese', 'Hotel', ...(tripCategories[tripId] || [])];
+      const removedCategories = removedTripCategories[tripId] || [];
+      return [
+        ...['Spese', 'Hotel'].filter((category) => !removedCategories.includes(category)),
+        ...(tripCategories[tripId] || [])
+      ];
     }
 
     function loadTripItems(tripId) {
@@ -2114,6 +2141,10 @@
       if (tripId !== activeTripId) {
         activeTripId = tripId;
         tripItems = loadTripItems(activeTripId);
+      }
+      const availableCategories = getTripCategories(tripId);
+      if (!availableCategories.includes(category)) {
+        category = availableCategories[0] || '';
       }
       activeTripCategory = category;
       tripTitle.textContent = selectedTrip.name;
@@ -2397,6 +2428,10 @@
 
     tripForm.addEventListener('submit', (event) => {
       event.preventDefault();
+      if (!getTripCategories(activeTripId).includes(tripItemCategoryInput.value)) {
+        tripStorageStatus.textContent = 'Aggiungi una voce nel sottomenu del viaggio prima di inserire elementi.';
+        return;
+      }
       const name = tripItemNameInput.value.trim();
       if (!name) {
         tripItemNameInput.focus();
@@ -2904,6 +2939,7 @@
         categories.replaceChildren();
         getTripCategories(trip.id).forEach((category) => {
           const item = document.createElement('li');
+          item.className = 'category-entry';
           const button = document.createElement('button');
           button.className = 'category-button trip-category-button';
           button.type = 'button';
@@ -2914,7 +2950,13 @@
             showTripList(trip.id, category);
             scrollToPanelOnMobile(tripPanel);
           });
-          item.append(button);
+          const removeButton = document.createElement('button');
+          removeButton.className = 'submenu-delete';
+          removeButton.type = 'button';
+          removeButton.dataset.deleteTripCategory = category;
+          removeButton.setAttribute('aria-label', `Elimina la voce ${category} da ${trip.name}`);
+          removeButton.textContent = '×';
+          item.append(button, removeButton);
           categories.append(item);
         });
       };
@@ -2954,12 +2996,24 @@
           return;
         }
 
+        const restoredBaseCategory = ['Spese', 'Hotel'].find((category) =>
+          category.toLowerCase() === name.toLowerCase()
+        );
         const previousCategories = tripCategories[trip.id] || [];
-        tripCategories[trip.id] = [...previousCategories, name];
+        const previousRemovedCategories = removedTripCategories[trip.id] || [];
+        if (restoredBaseCategory) {
+          removedTripCategories[trip.id] = previousRemovedCategories.filter((category) =>
+            category !== restoredBaseCategory
+          );
+        } else {
+          tripCategories[trip.id] = [...previousCategories, name];
+        }
         try {
           localStorage.setItem(tripCategoriesStorageKey, JSON.stringify(tripCategories));
+          localStorage.setItem(removedTripCategoriesStorageKey, JSON.stringify(removedTripCategories));
         } catch (error) {
           tripCategories[trip.id] = previousCategories;
+          removedTripCategories[trip.id] = previousRemovedCategories;
           console.error('Impossibile salvare la nuova voce del viaggio:', error);
           categoryStatus.textContent = 'Impossibile salvare la voce nel browser.';
           return;
@@ -2969,6 +3023,9 @@
         categoryStatus.textContent = '';
         renderCategories();
         if (activeTripId === trip.id) {
+          if (!getTripCategories(trip.id).includes(activeTripCategory)) {
+            activeTripCategory = name;
+          }
           tripItemCategoryInput.replaceChildren(...getTripCategories(trip.id).map((category) => {
             const option = document.createElement('option');
             option.value = category;
@@ -2976,7 +3033,57 @@
             return option;
           }));
           tripItemCategoryInput.value = activeTripCategory;
+          renderTripItems();
         }
+      });
+      categories.addEventListener('click', (event) => {
+        const removeButton = event.target.closest('[data-delete-trip-category]');
+        if (!removeButton) {
+          return;
+        }
+
+        const category = removeButton.dataset.deleteTripCategory;
+        const previousCategories = tripCategories[trip.id] || [];
+        const previousRemovedCategories = removedTripCategories[trip.id] || [];
+        const previousItems = trip.id === activeTripId ? [...tripItems] : loadTripItems(trip.id);
+        const nextCategories = previousCategories.filter((item) => item !== category);
+        if (nextCategories.length > 0) {
+          tripCategories[trip.id] = nextCategories;
+        } else {
+          delete tripCategories[trip.id];
+        }
+        if (['Spese', 'Hotel'].includes(category) && !previousRemovedCategories.includes(category)) {
+          removedTripCategories[trip.id] = [...previousRemovedCategories, category];
+        }
+        const nextItems = previousItems.filter((item) => item.category !== category);
+
+        try {
+          localStorage.setItem(tripCategoriesStorageKey, JSON.stringify(tripCategories));
+          localStorage.setItem(removedTripCategoriesStorageKey, JSON.stringify(removedTripCategories));
+          localStorage.setItem(tripListStorageKey(trip.id), JSON.stringify(nextItems));
+        } catch (error) {
+          tripCategories[trip.id] = previousCategories;
+          removedTripCategories[trip.id] = previousRemovedCategories;
+          console.error(`Impossibile eliminare la voce ${category} del viaggio:`, error);
+          categoryStatus.textContent = 'Impossibile eliminare la voce. I dati sono stati ripristinati.';
+          renderCategories();
+          return;
+        }
+
+        if (trip.id === activeTripId) {
+          tripItems = nextItems;
+          if (activeTripCategory === category) {
+            activeTripCategory = getTripCategories(trip.id)[0] || '';
+          }
+          if (getTripCategories(trip.id).length > 0) {
+            showTripList(trip.id, activeTripCategory);
+          } else {
+            tripItemCategoryInput.replaceChildren();
+            renderTripItems();
+          }
+        }
+        categoryStatus.textContent = `Voce “${category}” e gli elementi associati eliminati.`;
+        renderCategories();
       });
       const deleteRow = document.createElement('div');
       deleteRow.className = 'trip-menu-delete-row';
