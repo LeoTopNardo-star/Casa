@@ -38,6 +38,101 @@
       min-height: 100vh;
     }
 
+    body.auth-required .page,
+    body.auth-required .theme-switcher,
+    body.auth-required .sync-toolbar {
+      display: none;
+    }
+
+    .auth-panel {
+      width: min(420px, calc(100% - 32px));
+      margin: 12vh auto 0;
+      padding: 28px;
+      border: 1px solid #e4ebe3;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 10px 32px rgb(38 53 45 / 10%);
+    }
+
+    .auth-panel[hidden],
+    .sync-toolbar[hidden] {
+      display: none;
+    }
+
+    .auth-panel h1 {
+      margin-top: 0;
+      color: #315b45;
+    }
+
+    .auth-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .auth-form input,
+    .auth-form button {
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid #dce6dc;
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    .auth-form button {
+      color: #fff;
+      background: #315b45;
+      cursor: pointer;
+    }
+
+    .auth-status,
+    .sync-status {
+      min-height: 1.4em;
+      color: #52675a;
+      font-size: 0.9rem;
+    }
+
+    .auth-status:empty,
+    .sync-status:empty {
+      display: none;
+    }
+
+    .sync-toolbar {
+      position: fixed;
+      z-index: 5;
+      top: 12px;
+      right: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border: 1px solid #dce6dc;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 4px 12px rgb(38 53 45 / 10%);
+      font-size: 0.85rem;
+    }
+
+    .sync-toolbar button {
+      border: 0;
+      color: #315b45;
+      background: transparent;
+      font: inherit;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .sync-status {
+      position: fixed;
+      z-index: 5;
+      top: 50px;
+      right: 16px;
+      max-width: min(420px, calc(100vw - 32px));
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 4px 12px rgb(38 53 45 / 10%);
+    }
+
     .sidebar {
       padding: 44px 20px;
       position: relative;
@@ -1044,7 +1139,24 @@
     }
   </style>
 </head>
-<body>
+<body class="auth-required">
+  <section class="auth-panel" id="auth-panel" aria-labelledby="auth-title">
+    <h1 id="auth-title">Accedi a CASA</h1>
+    <p id="auth-description">Usa l’email e la password del tuo account CASA. Per accedere, l’amministratore deve prima abilitare la tua email.</p>
+    <form class="auth-form" id="auth-form">
+      <label for="auth-email">Email</label>
+      <input id="auth-email" name="email" type="email" autocomplete="username" required>
+      <label for="auth-password">Password</label>
+      <input id="auth-password" name="password" type="password" autocomplete="current-password" required>
+      <button id="auth-submit" type="submit">Accedi</button>
+    </form>
+    <p class="auth-status" id="auth-status" role="status" aria-live="polite"></p>
+  </section>
+  <div class="sync-toolbar" id="sync-toolbar" hidden>
+    <span id="signed-in-email"></span>
+    <button id="sign-out" type="button">Esci</button>
+  </div>
+  <p class="sync-status" id="sync-status" role="status" aria-live="polite"></p>
   <div class="page">
     <aside class="sidebar" aria-label="Menu principale">
       <button class="brand" id="home-button" type="button" aria-label="Torna alla homepage">CASA</button>
@@ -1154,7 +1266,289 @@
     <button type="button" data-theme-choice="light" aria-pressed="true">☀ Chiaro</button>
     <button type="button" data-theme-choice="dark" aria-pressed="false">☾ Scuro</button>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
+    const supabaseUrl = 'https://wmzxdafxosagacymfdef.supabase.co';
+    const supabasePublishableKey = 'sb_publishable_kUvUb9YtdURCemT7D2QQCw_-4l_Asiq';
+    const authLinkType = new URLSearchParams(window.location.hash.slice(1)).get('type') ||
+      new URLSearchParams(window.location.search).get('type');
+    const supabaseClient = window.supabase
+      ? window.supabase.createClient(supabaseUrl, supabasePublishableKey)
+      : null;
+    const authPanel = document.querySelector('#auth-panel');
+    const authForm = document.querySelector('#auth-form');
+    const authStatus = document.querySelector('#auth-status');
+    const authSubmit = document.querySelector('#auth-submit');
+    const authTitle = document.querySelector('#auth-title');
+    const authDescription = document.querySelector('#auth-description');
+    const authPassword = document.querySelector('#auth-password');
+    const syncToolbar = document.querySelector('#sync-toolbar');
+    const syncStatus = document.querySelector('#sync-status');
+    const signedInEmail = document.querySelector('#signed-in-email');
+    const appDataPrefix = 'casa-';
+    let appDataSyncReady = false;
+    let applyingCloudState = false;
+    let syncTimer;
+    let syncWriteQueue = Promise.resolve();
+    let syncChannel;
+    let resolveCloudSyncReady;
+    const cloudSyncReady = new Promise((resolve) => {
+      resolveCloudSyncReady = resolve;
+    });
+
+    function getLocalAppData() {
+      return Object.fromEntries(
+        Object.keys(localStorage)
+          .filter((key) => key.startsWith(appDataPrefix) && key !== 'casa-theme')
+          .sort()
+          .map((key) => [key, localStorage.getItem(key)])
+      );
+    }
+
+    function serializeAppData(data) {
+      return JSON.stringify(Object.fromEntries(
+        Object.entries(data).sort(([left], [right]) => left.localeCompare(right))
+      ));
+    }
+
+    function setLocalAppData(data) {
+      applyingCloudState = true;
+      try {
+        Object.keys(localStorage)
+          .filter((key) => key.startsWith(appDataPrefix) && key !== 'casa-theme')
+          .forEach((key) => localStorage.removeItem(key));
+        Object.entries(data || {}).forEach(([key, value]) => {
+          if (key.startsWith(appDataPrefix) && key !== 'casa-theme' && typeof value === 'string') {
+            localStorage.setItem(key, value);
+          }
+        });
+      } finally {
+        applyingCloudState = false;
+      }
+    }
+
+    function showSyncStatus(message, isError = false) {
+      syncStatus.textContent = message;
+      syncStatus.style.color = isError ? '#a12b2b' : '';
+    }
+
+    function scheduleAppDataSync() {
+      if (!appDataSyncReady || applyingCloudState) {
+        return;
+      }
+      clearTimeout(syncTimer);
+      syncTimer = setTimeout(() => {
+        syncWriteQueue = syncWriteQueue.then(async () => {
+          const snapshot = getLocalAppData();
+          showSyncStatus('Sincronizzazione in corso…');
+          const { error } = await supabaseClient
+            .from('casa_app_state')
+            .upsert({ id: 'shared', data: snapshot }, { onConflict: 'id' });
+          if (error) {
+            console.error('Impossibile sincronizzare i dati CASA:', error);
+            showSyncStatus('Modifiche non sincronizzate. Controlla la connessione e le autorizzazioni.', true);
+            return;
+          }
+          showSyncStatus('Dati sincronizzati.');
+          if (serializeAppData(snapshot) !== serializeAppData(getLocalAppData())) {
+            scheduleAppDataSync();
+          }
+        }).catch((error) => {
+          console.error('Errore durante la sincronizzazione CASA:', error);
+          showSyncStatus('Errore durante la sincronizzazione. Riprova tra poco.', true);
+        });
+      }, 500);
+    }
+
+    const originalStorageSetItem = Storage.prototype.setItem;
+    const originalStorageRemoveItem = Storage.prototype.removeItem;
+    Storage.prototype.setItem = function (key, value) {
+      originalStorageSetItem.call(this, key, value);
+      const storageKey = String(key);
+      if (this === localStorage && storageKey.startsWith(appDataPrefix) && storageKey !== 'casa-theme') {
+        scheduleAppDataSync();
+      }
+    };
+    Storage.prototype.removeItem = function (key) {
+      originalStorageRemoveItem.call(this, key);
+      const storageKey = String(key);
+      if (this === localStorage && storageKey.startsWith(appDataPrefix) && storageKey !== 'casa-theme') {
+        scheduleAppDataSync();
+      }
+    };
+
+    async function initializeCloudSync(session) {
+      const email = session.user.email || '';
+      signedInEmail.textContent = email;
+      showSyncStatus('Caricamento dei dati condivisi…');
+      const { data: cloudRecord, error } = await supabaseClient
+        .from('casa_app_state')
+        .select('data')
+        .eq('id', 'shared')
+        .maybeSingle();
+      if (error) {
+        throw error;
+      }
+
+      if (!cloudRecord) {
+        const { error: seedError } = await supabaseClient
+          .from('casa_app_state')
+          .insert({ id: 'shared', data: getLocalAppData() });
+        if (seedError && seedError.code !== '23505') {
+          throw seedError;
+        }
+        if (seedError) {
+          const { data: racedRecord, error: racedReadError } = await supabaseClient
+            .from('casa_app_state')
+            .select('data')
+            .eq('id', 'shared')
+            .single();
+          if (racedReadError) {
+            throw racedReadError;
+          }
+          const localData = getLocalAppData();
+          setLocalAppData(racedRecord.data);
+          if (serializeAppData(localData) !== serializeAppData(racedRecord.data)) {
+            window.location.reload();
+            return;
+          }
+        }
+      } else {
+        const localData = getLocalAppData();
+        setLocalAppData(cloudRecord.data);
+        if (serializeAppData(localData) !== serializeAppData(cloudRecord.data)) {
+          window.location.reload();
+          return;
+        }
+      }
+
+      appDataSyncReady = true;
+      syncToolbar.hidden = false;
+      authPanel.hidden = true;
+      document.body.classList.remove('auth-required');
+      showSyncStatus('Dati sincronizzati.');
+      const uploadsSynced = await syncExistingUploadsToCloud();
+      resolveCloudSyncReady();
+      if (!uploadsSynced) {
+        showSyncStatus('Alcuni allegati non sono stati sincronizzati. Controlla la connessione e riprova.', true);
+      }
+      syncChannel = supabaseClient
+        .channel('casa-shared-state')
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'casa_app_state',
+          filter: 'id=eq.shared'
+        }, (payload) => {
+          const remoteData = payload.new.data;
+          if (serializeAppData(remoteData) === serializeAppData(getLocalAppData())) {
+            return;
+          }
+          if (syncTimer) {
+            clearTimeout(syncTimer);
+            syncTimer = undefined;
+          }
+          setLocalAppData(remoteData);
+          location.reload();
+        })
+        .subscribe();
+    }
+
+    authForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      authSubmit.disabled = true;
+      authStatus.textContent = 'Accesso in corso…';
+      if (!supabaseClient) {
+        authStatus.textContent = 'Il servizio di accesso non è disponibile. Ricarica la pagina.';
+        authSubmit.disabled = false;
+        return;
+      }
+      if (authLinkType === 'invite') {
+        if (authPassword.value.length < 8) {
+          authStatus.textContent = 'La password deve contenere almeno 8 caratteri.';
+          authSubmit.disabled = false;
+          return;
+        }
+        try {
+          const { error } = await supabaseClient.auth.updateUser({ password: authPassword.value });
+          if (error) {
+            throw error;
+          }
+          window.history.replaceState(null, '', window.location.pathname);
+          window.location.reload();
+        } catch (error) {
+          console.error('Impossibile impostare la password CASA:', error);
+          authStatus.textContent = 'Impossibile impostare la password. Riapri il link di invito o richiedine uno nuovo.';
+          authSubmit.disabled = false;
+        }
+        return;
+      }
+      try {
+        const { error } = await supabaseClient.auth.signInWithPassword({
+          email: document.querySelector('#auth-email').value.trim(),
+          password: authPassword.value
+        });
+        if (error) {
+          throw error;
+        }
+        authStatus.textContent = 'Accesso riuscito. Caricamento…';
+        window.location.reload();
+      } catch (error) {
+        console.error('Accesso CASA non riuscito:', error);
+        authStatus.textContent = 'Accesso non riuscito. Verifica email e password e che l’account sia stato abilitato.';
+        authSubmit.disabled = false;
+      }
+    });
+
+    document.querySelector('#sign-out').addEventListener('click', async () => {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) {
+        console.error('Impossibile uscire dall’account CASA:', error);
+        showSyncStatus('Impossibile uscire. Riprova.', true);
+        return;
+      }
+      window.location.reload();
+    });
+
+    (async () => {
+      if (!supabaseClient) {
+        authStatus.textContent = 'Impossibile caricare il servizio di accesso. Controlla la connessione e ricarica la pagina.';
+        return;
+      }
+      try {
+        if (authLinkType === 'invite') {
+          authTitle.textContent = 'Imposta la password di CASA';
+          authDescription.textContent = 'Scegli una password di almeno 8 caratteri per completare l’invito.';
+          authForm.querySelector('label[for="auth-email"]').hidden = true;
+          document.querySelector('#auth-email').hidden = true;
+          authPassword.autocomplete = 'new-password';
+          authSubmit.textContent = 'Imposta password';
+          const { data: { session }, error } = await supabaseClient.auth.getSession();
+          if (error) {
+            throw error;
+          }
+          if (!session) {
+            authStatus.textContent = 'Invito non valido o scaduto. Richiedi un nuovo invito all’amministratore.';
+            authSubmit.disabled = true;
+          }
+          return;
+        }
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error) {
+          throw error;
+        }
+        if (!session) {
+          showSyncStatus('');
+          return;
+        }
+        await initializeCloudSync(session);
+      } catch (error) {
+        console.error('Impossibile inizializzare la sincronizzazione CASA:', error);
+        authPanel.hidden = false;
+        authStatus.textContent = 'Impossibile caricare i dati condivisi. Verifica di aver eseguito la configurazione SQL e che la tua email sia autorizzata.';
+      }
+    })();
+
     const themeStorageKey = 'casa-theme';
     const themeButtons = document.querySelectorAll('[data-theme-choice]');
     const themeColorMeta = document.querySelector('meta[name="theme-color"]');
@@ -1917,7 +2311,7 @@
       billPanel.hidden = false;
       wishlistPanel.hidden = true;
       billTitle.textContent = `Bollette ${year}`;
-      billDescription.textContent = `Carica e conserva offline i PDF delle bollette del ${year}.`;
+      billDescription.textContent = `Carica e conserva offline e condivisi i PDF delle bollette del ${year}.`;
       billMonthsPanel.replaceChildren();
 
       billMonths.forEach((month) => {
@@ -2038,7 +2432,9 @@
 
     const uploadDatabaseName = 'casa-offline-files';
     const uploadObjectStoreName = 'uploads';
+    const uploadNamesStorageKey = 'casa-upload-names';
     const objectUrls = new Map();
+    const cloudUploadRequests = new Map();
     let uploadDatabasePromise;
 
     function openUploadDatabase() {
@@ -2062,19 +2458,62 @@
     }
 
     async function getOfflineUpload(key) {
+      await cloudSyncReady;
       const database = await openUploadDatabase();
-      return new Promise((resolve, reject) => {
+      const localRecord = await new Promise((resolve, reject) => {
         const transaction = database.transaction(uploadObjectStoreName, 'readonly');
         const request = transaction.objectStore(uploadObjectStoreName).get(key);
         request.onsuccess = () => resolve(request.result || null);
         request.onerror = () => reject(request.error || new Error('Impossibile leggere un file salvato offline.'));
         transaction.onerror = () => reject(transaction.error || new Error('Errore durante la lettura del file offline.'));
       });
+      const uploadNames = JSON.parse(localStorage.getItem(uploadNamesStorageKey) || '{}');
+      const cloudFileName = uploadNames[key];
+      if (!cloudFileName || !supabaseClient) {
+        return localRecord;
+      }
+
+      if (!cloudUploadRequests.has(key)) {
+        cloudUploadRequests.set(key, supabaseClient.storage
+          .from('casa-files')
+          .download(key)
+          .then(async ({ data, error }) => {
+            if (error) {
+              throw error;
+            }
+            const fileRecord = {
+              key,
+              name: cloudFileName,
+              blob: data
+            };
+            await cacheOfflineUpload(key, fileRecord);
+            return fileRecord;
+          })
+          .finally(() => cloudUploadRequests.delete(key)));
+      }
+      return cloudUploadRequests.get(key);
+    }
+
+    async function cacheOfflineUpload(key, fileRecord) {
+      const database = await openUploadDatabase();
+      await new Promise((resolve, reject) => {
+        const transaction = database.transaction(uploadObjectStoreName, 'readwrite');
+        transaction.objectStore(uploadObjectStoreName).put({
+          key,
+          name: fileRecord.name,
+          type: fileRecord.blob.type,
+          lastModified: Date.now(),
+          blob: fileRecord.blob
+        });
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error || new Error('Impossibile conservare offline il file condiviso.'));
+        transaction.onabort = () => reject(transaction.error || new Error('Salvataggio offline del file condiviso annullato.'));
+      });
     }
 
     async function saveOfflineUpload(key, file) {
       const database = await openUploadDatabase();
-      return new Promise((resolve, reject) => {
+      await new Promise((resolve, reject) => {
         const transaction = database.transaction(uploadObjectStoreName, 'readwrite');
         transaction.objectStore(uploadObjectStoreName).put({
           key,
@@ -2087,17 +2526,79 @@
         transaction.onerror = () => reject(transaction.error || new Error('Impossibile salvare il file offline.'));
         transaction.onabort = () => reject(transaction.error || new Error('Salvataggio offline annullato.'));
       });
+      const { error } = await supabaseClient.storage
+        .from('casa-files')
+        .upload(key, file.slice(0, file.size, file.type), {
+          contentType: file.type || 'application/octet-stream',
+          upsert: true
+        });
+      if (error) {
+        throw new Error(`Il file è salvato solo su questo dispositivo. Sincronizzazione cloud non riuscita: ${error.message}`);
+      }
+      const uploadNames = JSON.parse(localStorage.getItem(uploadNamesStorageKey) || '{}');
+      uploadNames[key] = file.name;
+      localStorage.setItem(uploadNamesStorageKey, JSON.stringify(uploadNames));
+    }
+
+    async function syncExistingUploadsToCloud() {
+      try {
+        const database = await openUploadDatabase();
+        const records = await new Promise((resolve, reject) => {
+          const transaction = database.transaction(uploadObjectStoreName, 'readonly');
+          const request = transaction.objectStore(uploadObjectStoreName).getAll();
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error || new Error('Impossibile leggere gli allegati offline.'));
+          transaction.onerror = () => reject(transaction.error || new Error('Errore durante la lettura degli allegati offline.'));
+        });
+        const uploadNames = JSON.parse(localStorage.getItem(uploadNamesStorageKey) || '{}');
+        const failures = [];
+        let hasChanges = false;
+        for (const record of records) {
+          if (uploadNames[record.key]) {
+            continue;
+          }
+          const { error } = await supabaseClient.storage
+            .from('casa-files')
+            .upload(record.key, record.blob, {
+              contentType: record.type || 'application/octet-stream',
+              upsert: true
+            });
+          if (error) {
+            console.error(`Impossibile sincronizzare l’allegato ${record.name}:`, error);
+            failures.push(record.name);
+            continue;
+          }
+          uploadNames[record.key] = record.name;
+          hasChanges = true;
+        }
+        if (hasChanges) {
+          localStorage.setItem(uploadNamesStorageKey, JSON.stringify(uploadNames));
+        }
+        return failures.length === 0;
+      } catch (error) {
+        console.error('Impossibile verificare gli allegati locali da sincronizzare:', error);
+        return false;
+      }
     }
 
     async function deleteOfflineUpload(key) {
       const database = await openUploadDatabase();
-      return new Promise((resolve, reject) => {
+      await new Promise((resolve, reject) => {
         const transaction = database.transaction(uploadObjectStoreName, 'readwrite');
         transaction.objectStore(uploadObjectStoreName).delete(key);
         transaction.oncomplete = resolve;
         transaction.onerror = () => reject(transaction.error || new Error('Impossibile rimuovere il file salvato offline.'));
         transaction.onabort = () => reject(transaction.error || new Error('Rimozione del file offline annullata.'));
       });
+      const uploadNames = JSON.parse(localStorage.getItem(uploadNamesStorageKey) || '{}');
+      if (uploadNames[key]) {
+        const { error } = await supabaseClient.storage.from('casa-files').remove([key]);
+        if (error) {
+          throw new Error(`File locale rimosso, ma non è stato possibile eliminare la copia cloud: ${error.message}`);
+        }
+        delete uploadNames[key];
+        localStorage.setItem(uploadNamesStorageKey, JSON.stringify(uploadNames));
+      }
     }
 
     function revokeOfflineUploadUrls(key) {
@@ -2160,7 +2661,7 @@
       }
 
       status.replaceChildren();
-      status.append(document.createTextNode(`Salvato offline: ${fileRecord.name} `));
+      status.append(document.createTextNode(`Salvato offline e condiviso: ${fileRecord.name} `));
 
       const openLink = document.createElement('a');
       const objectUrl = URL.createObjectURL(fileRecord.blob);
@@ -2193,7 +2694,7 @@
           });
         } catch (error) {
           console.error('Impossibile salvare il file per l’uso offline:', error);
-          status.textContent = `File selezionato ma non salvato offline: ${file.name}. ${error.message}`;
+          status.textContent = `${error.message.includes('solo su questo dispositivo') ? '' : `File selezionato ma non salvato offline: ${file.name}. `}${error.message}`;
         }
       });
 
@@ -2396,7 +2897,7 @@
       homeImagePreview.alt = `Immagine personalizzata della homepage: ${fileRecord.name}`;
       homeImageContainer.hidden = false;
       removeHomeImageButton.hidden = false;
-      homeImageStatus.textContent = `Immagine salvata offline: ${fileRecord.name}`;
+      homeImageStatus.textContent = `Immagine salvata offline e condivisa: ${fileRecord.name}`;
     }
 
     homeImageInput.addEventListener('change', async () => {
