@@ -121,6 +121,17 @@
       cursor: pointer;
     }
 
+    [data-theme="dark"] .sync-toolbar {
+      border-color: #3a4a3d;
+      color: #d5e0d7;
+      background: #1b241e;
+      box-shadow: 0 4px 12px rgb(0 0 0 / 28%);
+    }
+
+    [data-theme="dark"] .sync-toolbar button {
+      color: #a9d2b0;
+    }
+
     .sync-status {
       position: fixed;
       z-index: 5;
@@ -131,6 +142,12 @@
       border-radius: 8px;
       background: #fff;
       box-shadow: 0 4px 12px rgb(38 53 45 / 10%);
+    }
+
+    [data-theme="dark"] .sync-status {
+      color: #d5e0d7;
+      background: #1b241e;
+      box-shadow: 0 4px 12px rgb(0 0 0 / 28%);
     }
 
     .account-controls {
@@ -1396,7 +1413,7 @@
     }
 
     function showSyncStatus(message, isError = false) {
-      syncStatus.textContent = message;
+      syncStatus.textContent = message === 'Dati sincronizzati.' ? '' : message;
       syncStatus.style.color = isError ? '#a12b2b' : '';
     }
 
