@@ -1,4 +1,4 @@
-const CACHE_NAME = 'casa-pwa-v18';
+const CACHE_NAME = 'casa-pwa-v19';
 const APP_FILES = [
   './index.html',
   './Spesa.html',
@@ -37,11 +37,6 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith(
       (async () => {
-        const cachedPage = await caches.match(request);
-        if (cachedPage) {
-          return cachedPage;
-        }
-
         try {
           const response = await fetch(request);
           if (response.ok) {
@@ -50,6 +45,11 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         } catch (error) {
+          const cachedPage = await caches.match(request);
+          if (cachedPage) {
+            return cachedPage;
+          }
+
           const appPage = await caches.match(new URL('./Spesa.html', self.registration.scope).href);
           if (appPage) {
             return appPage;
