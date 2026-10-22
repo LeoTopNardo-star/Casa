@@ -1250,7 +1250,7 @@
     <aside class="sidebar" aria-label="Menu principale">
       <button class="brand" id="home-button" type="button" aria-label="Torna alla homepage">CASA</button>
       <nav class="menu" aria-label="Sezioni">
-        <details data-section="shopping">
+        <details name="main-sections" data-section="shopping">
           <summary>Lista spesa <span class="chevron" aria-hidden="true"></span></summary>
           <ul class="submenu category-list" id="shopping-categories" aria-label="Filtra per categoria"></ul>
           <form class="menu-add-form" id="shopping-category-form">
@@ -1259,11 +1259,11 @@
           </form>
           <p class="menu-add-status" id="shopping-category-status" role="status" aria-live="polite"></p>
         </details>
-        <details>
+        <details name="main-sections">
           <summary>Bollette <span class="chevron" aria-hidden="true"></span></summary>
           <div class="submenu" id="bill-years" aria-label="Bollette per anno"></div>
         </details>
-        <details>
+        <details name="main-sections">
           <summary>Viaggi <span class="chevron" aria-hidden="true"></span></summary>
           <div id="trip-menus"></div>
           <form class="menu-add-form" id="trip-add-form">
@@ -1272,7 +1272,7 @@
           </form>
           <p class="menu-add-status" id="trip-add-status" role="status" aria-live="polite"></p>
         </details>
-        <details data-section="wishlist">
+        <details name="main-sections" data-section="wishlist">
           <summary>Wishlist <span class="chevron" aria-hidden="true"></span></summary>
           <ul class="submenu wishlist-list" id="wishlist-items" aria-label="Voci della wishlist"></ul>
           <form class="menu-add-form" id="wishlist-form">
