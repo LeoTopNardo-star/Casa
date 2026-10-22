@@ -691,6 +691,10 @@
       margin-bottom: 20px;
     }
 
+    #trip-form {
+      grid-template-columns: minmax(0, 1fr) 110px 130px minmax(120px, auto) auto;
+    }
+
     .shopping-form input,
     .shopping-form select,
     .shopping-form button {
@@ -724,6 +728,28 @@
       padding: 0;
       border: 0;
       outline: 0;
+    }
+
+    .trip-total {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+      min-height: 44px;
+      padding: 5px 10px;
+      border: 1px solid #dce4dc;
+      border-radius: 9px;
+      color: #526257;
+      background: #f5f8f4;
+      font-size: 0.72rem;
+      line-height: 1.2;
+    }
+
+    .trip-total output {
+      color: #315b45;
+      font-size: 0.95rem;
+      font-weight: 700;
+      white-space: nowrap;
     }
 
     .shopping-form input:focus,
@@ -1085,6 +1111,16 @@
       color: #89998d;
     }
 
+    [data-theme="dark"] .trip-total {
+      border-color: #3a4a3d;
+      color: #c0cdc3;
+      background: #202b23;
+    }
+
+    [data-theme="dark"] .trip-total output {
+      color: #a9d2b0;
+    }
+
     [data-theme="dark"] .shopping-form button {
       border-color: #52785b;
       color: #f1f7f2;
@@ -1366,6 +1402,10 @@
             <span>€</span>
             <input id="trip-item-amount" name="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" aria-label="Importo in euro">
           </label>
+          <div class="trip-total">
+            <span>Totale viaggio</span>
+            <output id="trip-total-value" aria-live="polite">0,00 €</output>
+          </div>
           <button type="submit">Aggiungi</button>
         </form>
         <ul class="shopping-items" id="trip-items" aria-live="polite"></ul>
@@ -1740,6 +1780,7 @@
     const tripItemNameInput = document.querySelector('#trip-item-name');
     const tripItemCategoryInput = document.querySelector('#trip-item-category');
     const tripItemAmountInput = document.querySelector('#trip-item-amount');
+    const tripTotalValue = document.querySelector('#trip-total-value');
     const tripItemsList = document.querySelector('#trip-items');
     const tripEmptyListMessage = document.querySelector('#trip-empty-list');
     const tripStorageStatus = document.querySelector('#trip-storage-status');
@@ -2096,6 +2137,9 @@
           amountInput.addEventListener('change', () => {
             item.amount = amountInput.value === '' ? null : Number(amountInput.value);
             saveItems();
+            if (showAmount) {
+              updateTripTotal();
+            }
           });
           amountContainer.append(amountInput);
           rowItems.push(amountContainer);
@@ -2159,8 +2203,18 @@
       }
     }
 
+    function updateTripTotal() {
+      const total = tripItems.reduce((sum, item) =>
+        sum + (typeof item.amount === 'number' && Number.isFinite(item.amount) ? item.amount : 0), 0);
+      tripTotalValue.textContent = new Intl.NumberFormat('it-IT', {
+        style: 'currency',
+        currency: 'EUR'
+      }).format(total);
+    }
+
     function renderTripItems() {
       const visibleItems = tripItems.filter((item) => item.category === activeTripCategory);
+      updateTripTotal();
       renderItemList(
         tripItemsList, tripItems, visibleItems, tripEmptyListMessage,
         `La lista ${activeTripCategory.toLowerCase()} è vuota: aggiungi la prima voce.`,
