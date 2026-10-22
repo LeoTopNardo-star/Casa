@@ -1259,9 +1259,15 @@
       }
 
       #trip-form {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
         margin-bottom: 16px;
+      }
+
+      #trip-item-name,
+      #trip-form .trip-total,
+      #trip-form button {
+        grid-column: 1 / -1;
       }
 
       #trip-form .trip-total {
